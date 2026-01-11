@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synthetic Dreams - Psychedelic Kaleidoscope</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            overflow: hidden;
+            height: 100vh;
+            cursor: none;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px 25px;
+            border-radius: 30px;
+            color: white;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            transition: opacity 0.3s;
+        }
+
+        .controls:hover {
+            opacity: 1 !important;
+        }
+
+        .control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.8;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        button.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        input[type="range"] {
+            width: 100px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            border-radius: 2px;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: white;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            background: rgba(255, 0, 0, 0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .back-button:hover {
+            background: rgba(255, 0, 0, 0.5);
+            transform: scale(1.05);
+        }
+
+        .cursor {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transition: transform 0.1s;
+            mix-blend-mode: difference;
+        }
+
+        .fullscreen-hint {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 12px;
+            z-index: 1000;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div class="cursor" id="cursor"></div>
+
+    <div class="controls" id="controls">
+        <div class="control">
+            <label>Segments</label>
+            <input type="range" id="segments" min="3" max="24" value="12">
+        </div>
+        <div class="control">
+            <label>Speed</label>
+            <input type="range" id="speed" min="0" max="20" value="10">
+        </div>
+        <div class="control">
+            <label>Zoom</label>
+            <input type="range" id="zoom" min="50" max="200" value="100">
+        </div>
+        <button id="modeBtn">Mode: Mandala</button>
+        <button id="colorBtn">Colors: Spectrum</button>
+        <button id="fullscreenBtn">Fullscreen</button>
+    </div>
+
+    <div class="fullscreen-hint">Press SPACE to hide controls</div>
+    <a href="../index.html" class="back-button">Back</a>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const cursor = document.getElementById('cursor');
+        const controls = document.getElementById('controls');
+
+        // State
+        let state = {
+            segments: 12,
+            speed: 10,
+            zoom: 100,
+            mode: 'mandala', // mandala, spiral, fractal, tunnel
+            colorMode: 'spectrum', // spectrum, neon, vaporwave, fire
+            time: 0,
+            mouseX: 0,
+            mouseY: 0,
+            centerX: 0,
+            centerY: 0,
+            showControls: true,
+            particles: [],
+            trails: []
+        };
+
+        // Resize canvas
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            state.centerX = canvas.width / 2;
+            state.centerY = canvas.height / 2;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        // Color palettes
+        const palettes = {
+            spectrum: (t) => `hsl(${t * 360}, 100%, 50%)`,
+            neon: (t) => {
+                const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00ff'];
+                const idx = Math.floor(t * colors.length) % colors.length;
+                return colors[idx];
+            },
+            vaporwave: (t) => {
+                const colors = ['#ff47ff', '#ff71ce', '#01cdfe', '#05ffa1', '#b967ff'];
+                const idx = Math.floor(t * colors.length) % colors.length;
+                return colors[idx];
+            },
+            fire: (t) => {
+                const r = 255;
+                const g = Math.floor(255 * t);
+                const b = Math.floor(100 * t);
+                return `rgb(${r}, ${g}, ${b})`;
+            }
+        };
+
+        // Particle class for effects
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.life = 1;
+                this.decay = 0.01;
+                this.size = Math.random() * 3 + 1;
+                this.hue = Math.random() * 360;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= this.decay;
+                this.vx *= 0.99;
+                this.vy *= 0.99;
+                return this.life > 0;
+            }
+
+            draw(ctx, angle, index) {
+                ctx.save();
+                ctx.translate(state.centerX, state.centerY);
+                ctx.rotate(angle);
+                ctx.globalAlpha = this.life * 0.5;
+
+                const color = palettes[state.colorMode](this.hue / 360);
+                ctx.fillStyle = color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = color;
+
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Draw functions for different modes
+        const drawModes = {
+            mandala: () => {
+                const segments = state.segments;
+                const angle = (Math.PI * 2) / segments;
+                const maxRadius = Math.max(canvas.width, canvas.height);
+
+                // Multiple layers for depth
+                for (let layer = 0; layer < 5; layer++) {
+                    const layerOffset = layer * 100;
+
+                    for (let i = 0; i < segments; i++) {
+                        ctx.save();
+                        ctx.translate(state.centerX, state.centerY);
+                        ctx.rotate(angle * i + state.time * 0.001 * (1 + layer * 0.2));
+
+                        // Fill entire screen with patterns
+                        for (let j = 0; j < 50; j++) {
+                            const t = (state.time * 0.0005 + j * 0.02 + layer * 0.1) % 1;
+                            const radius = (j * maxRadius / 30) * (state.zoom / 100);
+                            const x = radius * Math.cos(j * 0.3 + state.time * 0.001);
+                            const y = radius * Math.sin(j * 0.3 + state.time * 0.001);
+                            const size = (30 + Math.sin(state.time * 0.002 + j) * 20) * (1 + layer * 0.3);
+
+                            const gradient = ctx.createRadialGradient(x, y, 0, x, y, size);
+                            gradient.addColorStop(0, palettes[state.colorMode](t));
+                            gradient.addColorStop(1, 'transparent');
+
+                            ctx.fillStyle = gradient;
+                            ctx.globalAlpha = 0.3 / (layer + 1);
+
+                            ctx.beginPath();
+                            ctx.arc(x, y, size, 0, Math.PI * 2);
+                            ctx.fill();
+
+                            // Mirror effect
+                            ctx.scale(1, -1);
+                            ctx.beginPath();
+                            ctx.arc(x, y, size, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.scale(1, -1);
+                        }
+
+                        ctx.restore();
+                    }
+                }
+            },
+
+            spiral: () => {
+                const segments = state.segments;
+                const angle = (Math.PI * 2) / segments;
+                const maxRadius = Math.max(canvas.width, canvas.height);
+
+                // Multiple spiral layers
+                for (let layer = 0; layer < 3; layer++) {
+                    for (let i = 0; i < segments; i++) {
+                        ctx.save();
+                        ctx.translate(state.centerX, state.centerY);
+                        ctx.rotate(angle * i + state.time * 0.001 * (1 + layer * 0.5));
+
+                        // Create full-screen spirals
+                        ctx.beginPath();
+                        for (let j = 0; j < 200; j++) {
+                            const t = j / 200;
+                            const spiral = (j * maxRadius / 100) * (state.zoom / 100);
+                            const spiralAngle = j * 0.15 + state.time * 0.001 + layer * Math.PI / 3;
+                            const x = spiral * Math.cos(spiralAngle);
+                            const y = spiral * Math.sin(spiralAngle);
+
+                            if (j === 0) ctx.moveTo(x, y);
+                            else ctx.lineTo(x, y);
+                        }
+
+                        const gradient = ctx.createLinearGradient(-maxRadius, 0, maxRadius, 0);
+                        gradient.addColorStop(0, palettes[state.colorMode]((state.time * 0.0001 + layer * 0.3) % 1));
+                        gradient.addColorStop(0.5, palettes[state.colorMode]((state.time * 0.0001 + 0.3 + layer * 0.3) % 1));
+                        gradient.addColorStop(1, palettes[state.colorMode]((state.time * 0.0001 + 0.6 + layer * 0.3) % 1));
+
+                        ctx.strokeStyle = gradient;
+                        ctx.lineWidth = 3 + layer * 2;
+                        ctx.globalAlpha = 0.4 / (layer + 1);
+                        ctx.stroke();
+
+                        // Add filled spiral sections
+                        if (i % 2 === 0) {
+                            ctx.fillStyle = gradient;
+                            ctx.globalAlpha = 0.05 / (layer + 1);
+                            ctx.fill();
+                        }
+
+                        ctx.restore();
+                    }
+                }
+            },
+
+            fractal: () => {
+                function drawBranch(x, y, angle, depth, maxDepth) {
+                    if (depth > maxDepth) return;
+
+                    const length = (250 * (state.zoom / 100)) / (depth + 1);
+                    const endX = x + Math.cos(angle) * length;
+                    const endY = y + Math.sin(angle) * length;
+
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(endX, endY);
+
+                    const gradient = ctx.createLinearGradient(x, y, endX, endY);
+                    gradient.addColorStop(0, palettes[state.colorMode](depth / maxDepth));
+                    gradient.addColorStop(1, palettes[state.colorMode]((depth + 1) / maxDepth));
+
+                    ctx.strokeStyle = gradient;
+                    ctx.lineWidth = Math.max(1, (maxDepth - depth));
+                    ctx.globalAlpha = 0.9 - depth * 0.1;
+                    ctx.stroke();
+
+                    const spread = Math.PI / 3 + Math.sin(state.time * 0.001 + depth) * Math.PI / 6;
+                    drawBranch(endX, endY, angle - spread, depth + 1, maxDepth);
+                    drawBranch(endX, endY, angle + spread, depth + 1, maxDepth);
+
+                    // Extra branch for more coverage
+                    if (depth < 3) {
+                        drawBranch(endX, endY, angle + Math.PI / 8, depth + 1, maxDepth);
+                    }
+                }
+
+                const segments = state.segments;
+                const angle = (Math.PI * 2) / segments;
+
+                for (let i = 0; i < segments; i++) {
+                    ctx.save();
+                    ctx.translate(state.centerX, state.centerY);
+                    ctx.rotate(angle * i + state.time * 0.0005);
+                    drawBranch(0, 0, -Math.PI / 2, 0, 7);
+                    ctx.restore();
+                }
+            },
+
+            tunnel: () => {
+                const segments = state.segments;
+                const layers = 50;
+                const maxRadius = Math.max(canvas.width, canvas.height);
+
+                for (let layer = 0; layer < layers; layer++) {
+                    const layerScale = layer / layers;
+                    const radius = maxRadius * (1 - Math.pow(layerScale, 2));
+                    const rotation = state.time * 0.002 * (1 - layerScale) + layer * 0.1;
+                    const distortion = Math.sin(state.time * 0.001 + layerScale * Math.PI) * 0.2;
+
+                    ctx.save();
+                    ctx.translate(state.centerX, state.centerY);
+                    ctx.rotate(rotation);
+                    ctx.scale(1 + distortion, 1 - distortion);
+
+                    ctx.beginPath();
+                    for (let i = 0; i <= segments; i++) {
+                        const angle = (i / segments) * Math.PI * 2;
+                        const wobble = Math.sin(angle * 3 + state.time * 0.002) * 20 * layerScale;
+                        const x = Math.cos(angle) * (radius + wobble);
+                        const y = Math.sin(angle) * (radius + wobble);
+
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.closePath();
+
+                    const t = (layerScale + state.time * 0.0001) % 1;
+                    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+                    gradient.addColorStop(0, 'transparent');
+                    const midColor = palettes[state.colorMode]((t + 0.3) % 1);
+                    // Create semi-transparent version
+                    if (midColor.startsWith('hsl')) {
+                        const hslMatch = midColor.match(/hsl\((.+?),(.+?),(.+?)\)/);
+                        if (hslMatch) {
+                            gradient.addColorStop(0.5, `hsla(${hslMatch[1]}, ${hslMatch[2]}, ${hslMatch[3]}, 0.25)`);
+                        }
+                    } else {
+                        gradient.addColorStop(0.5, midColor);
+                    }
+                    gradient.addColorStop(1, palettes[state.colorMode]((t + 0.6) % 1));
+
+                    ctx.fillStyle = gradient;
+                    ctx.globalAlpha = 0.1 * (1 - layerScale);
+                    ctx.fill();
+
+                    ctx.strokeStyle = palettes[state.colorMode](t);
+                    ctx.lineWidth = 2 + layerScale * 3;
+                    ctx.globalAlpha = 0.6 * (1 - layerScale * 0.5);
+                    ctx.stroke();
+
+                    ctx.restore();
+                }
+            }
+        };
+
+        // Animation loop
+        function animate() {
+            // Fade trail effect
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Update time
+            state.time += state.speed;
+
+            // Draw current mode
+            drawModes[state.mode]();
+
+            // Update and draw particles
+            state.particles = state.particles.filter(p => {
+                if (!p.update()) return false;
+
+                for (let i = 0; i < state.segments; i++) {
+                    const angle = (Math.PI * 2 / state.segments) * i;
+                    p.draw(ctx, angle, i);
+                }
+                return true;
+            });
+
+            // Add new particles based on mouse movement
+            if (Math.random() < 0.3 && state.particles.length < 100) {
+                const dx = state.mouseX - state.centerX;
+                const dy = state.mouseY - state.centerY;
+                state.particles.push(new Particle(dx, dy));
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Mouse tracking
+        document.addEventListener('mousemove', (e) => {
+            state.mouseX = e.clientX;
+            state.mouseY = e.clientY;
+            cursor.style.left = e.clientX - 10 + 'px';
+            cursor.style.top = e.clientY - 10 + 'px';
+        });
+
+        document.addEventListener('click', (e) => {
+            // Create burst of particles
+            for (let i = 0; i < 20; i++) {
+                const dx = e.clientX - state.centerX;
+                const dy = e.clientY - state.centerY;
+                const p = new Particle(dx, dy);
+                p.vx = (Math.random() - 0.5) * 10;
+                p.vy = (Math.random() - 0.5) * 10;
+                state.particles.push(p);
+            }
+        });
+
+        // Controls
+        document.getElementById('segments').addEventListener('input', (e) => {
+            state.segments = parseInt(e.target.value);
+        });
+
+        document.getElementById('speed').addEventListener('input', (e) => {
+            state.speed = parseInt(e.target.value);
+        });
+
+        document.getElementById('zoom').addEventListener('input', (e) => {
+            state.zoom = parseInt(e.target.value);
+        });
+
+        const modes = ['mandala', 'spiral', 'fractal', 'tunnel'];
+        let modeIndex = 0;
+        document.getElementById('modeBtn').addEventListener('click', () => {
+            modeIndex = (modeIndex + 1) % modes.length;
+            state.mode = modes[modeIndex];
+            document.getElementById('modeBtn').textContent = `Mode: ${state.mode.charAt(0).toUpperCase() + state.mode.slice(1)}`;
+        });
+
+        const colorModes = ['spectrum', 'neon', 'vaporwave', 'fire'];
+        let colorIndex = 0;
+        document.getElementById('colorBtn').addEventListener('click', () => {
+            colorIndex = (colorIndex + 1) % colorModes.length;
+            state.colorMode = colorModes[colorIndex];
+            document.getElementById('colorBtn').textContent = `Colors: ${state.colorMode.charAt(0).toUpperCase() + state.colorMode.slice(1)}`;
+        });
+
+        document.getElementById('fullscreenBtn').addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                state.showControls = !state.showControls;
+                controls.style.opacity = state.showControls ? '1' : '0';
+                document.querySelector('.fullscreen-hint').style.display = state.showControls ? 'block' : 'none';
+            }
+            if (e.key === 'ArrowUp') state.segments = Math.min(24, state.segments + 1);
+            if (e.key === 'ArrowDown') state.segments = Math.max(3, state.segments - 1);
+            if (e.key === 'ArrowRight') state.speed = Math.min(20, state.speed + 1);
+            if (e.key === 'ArrowLeft') state.speed = Math.max(0, state.speed - 1);
+        });
+
+        // Auto-hide controls after 3 seconds
+        let hideTimeout;
+        document.addEventListener('mousemove', () => {
+            controls.style.opacity = '1';
+            clearTimeout(hideTimeout);
+            hideTimeout = setTimeout(() => {
+                if (state.showControls) {
+                    controls.style.opacity = '0.3';
+                }
+            }, 3000);
+        });
+
+        // Start animation
+        animate();
+    </script>
+</body>
+</html>
