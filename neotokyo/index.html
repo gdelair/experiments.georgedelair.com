@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeoTokyo Nights: Infinite Cyberpunk Adventure</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #0a0a0a;
+            color: #00ff00;
+            margin: 0;
+            padding: 10px;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        #game-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #111;
+            border: 2px solid #00ff00;
+            padding: 20px;
+            box-shadow: 0 0 10px #00ff00;
+        }
+
+        h1 {
+            color: #ff00ff;
+            text-align: center;
+            text-shadow: 2px 2px #00ffff;
+        }
+
+        #story {
+            margin-bottom: 20px;
+            min-height: 100px;
+        }
+
+        #choices {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        button {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #333;
+            color: #00ff00;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-shadow: 1px 1px #00ffff;
+        }
+
+        button:hover {
+            background-color: #00ff00;
+            color: #111;
+        }
+
+        #stats {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .stat {
+            flex: 1;
+            text-align: center;
+        }
+
+        #inventory {
+            margin-top: 20px;
+        }
+        
+        #back-button {
+            background-color: #f00;
+            color: #fff;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+            font-size: 14px;
+            padding: 8px 16px;
+        }
+
+        #back-button:hover {
+            background-color: #c00;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>NeoTokyo Nights</h1>
+        <div id="story"></div>
+        <div id="choices"></div>
+        <div id="stats">
+            <div class="stat">HP: <span id="hp">100</span></div>
+            <div class="stat">Credits: <span id="credits">500</span></div>
+            <div class="stat">Rep: <span id="rep">0</span></div>
+        </div>
+        <div id="inventory">
+            Inventory: <span id="inv-items"></span>
+        </div>
+    </div>
+    <div><a href="../index.html" id="back-button">Back to Experiments</a></div>
+    <script>
+        const story = document.getElementById('story');
+        const choices = document.getElementById('choices');
+        const hpSpan = document.getElementById('hp');
+        const creditsSpan = document.getElementById('credits');
+        const repSpan = document.getElementById('rep');
+        const invItems = document.getElementById('inv-items');
+
+        let hp = 100;
+        let credits = 500;
+        let rep = 0;
+        let inventory = [];
+
+        // Story elements for procedural generation
+        const locations = ['dingy apartment', 'neon-lit alley', 'underground hacker den', 'corporate skyscraper', 'black market bazaar', 'cybernetic clinic', 'virtual reality cafe', 'abandoned factory', 'high-speed maglev train', 'orbital space station'];
+        const characters = ['mysterious fixer', 'rogue AI', 'cybernetic street samurai', 'corporate exec', 'rebellious netrunner', 'cyborg mechanic', 'underground DJ', 'black market dealer', 'cyber-enhanced detective', 'holographic idol'];
+        const objectives = ['steal sensitive data', 'hack a secure network', 'escort a VIP', 'sabotage a rival corp', 'retrieve a stolen cyberdeck', 'infiltrate a secret lab', 'decrypt an ancient AI', 'assassinate a corrupt official', 'protect a whistleblower', 'race in an illegal drone competition'];
+        const complications = ['rival gang interference', 'unexpected system lockdown', 'double-crossing client', 'corporate security alert', 'cyberpsychosis outbreak', 'EMP blast', 'hostile AI takeover', 'augmentation malfunction', 'memory wipe virus', 'time-sensitive nano-bomb'];
+
+        function getRandomElement(array) {
+            return array[Math.floor(Math.random() * array.length)];
+        }
+
+        function generateScene() {
+            const location = getRandomElement(locations);
+            const character = getRandomElement(characters);
+            const objective = getRandomElement(objectives);
+            const complication = getRandomElement(complications);
+
+            return {
+                text: `You find yourself in a ${location}. A ${character} approaches you with a job: ${objective}. However, there's a complication: ${complication}. What's your move?`,
+                choices: [
+                    { text: "Accept the job", action: acceptJob },
+                    { text: "Negotiate for more credits", action: negotiate },
+                    { text: "Gather more intel", action: gatherIntel },
+                    { text: "Walk away", action: walkAway }
+                ]
+            };
+        }
+
+        function updateStats(hpChange = 0, creditsChange = 0, repChange = 0) {
+            hp = Math.max(0, Math.min(hp + hpChange, 100));
+            credits += creditsChange;
+            rep += repChange;
+            hpSpan.textContent = hp;
+            creditsSpan.textContent = credits;
+            repSpan.textContent = rep;
+            invItems.textContent = inventory.join(', ');
+        }
+
+        function showScene(scene) {
+            story.innerHTML = scene.text;
+            choices.innerHTML = '';
+            scene.choices.forEach(choice => {
+                const button = document.createElement('button');
+                button.textContent = choice.text;
+                button.onclick = choice.action;
+                choices.appendChild(button);
+            });
+        }
+
+        function acceptJob() {
+            const outcomes = [
+                { text: "You successfully complete the job, earning credits and reputation.", hpChange: -10, creditsChange: 200, repChange: 5 },
+                { text: "The job was a trap! You barely escape with your life.", hpChange: -30, creditsChange: -100, repChange: -2 },
+                { text: "You complete the job, but complications arise. The pay is less than expected.", hpChange: -5, creditsChange: 50, repChange: 2 }
+            ];
+            const outcome = getRandomElement(outcomes);
+            updateStats(outcome.hpChange, outcome.creditsChange, outcome.repChange);
+            showScene({
+                text: outcome.text + " What's your next move?",
+                choices: [
+                    { text: "Look for another job", action: () => showScene(generateScene()) },
+                    { text: "Visit the black market", action: visitBlackMarket },
+                    { text: "Rest and recover", action: restRecover }
+                ]
+            });
+        }
+
+        function negotiate() {
+            const outcomes = [
+                { text: "Your negotiation is successful. The client agrees to pay more.", creditsChange: 100, repChange: 2 },
+                { text: "The client is offended by your demands and withdraws the offer.", creditsChange: 0, repChange: -1 },
+                { text: "You reach a compromise, securing a modest increase in pay.", creditsChange: 50, repChange: 1 }
+            ];
+            const outcome = getRandomElement(outcomes);
+            updateStats(0, outcome.creditsChange, outcome.repChange);
+            showScene({
+                text: outcome.text + " What do you do next?",
+                choices: [
+                    { text: "Accept the job", action: acceptJob },
+                    { text: "Look for another opportunity", action: () => showScene(generateScene()) },
+                    { text: "Take a break", action: restRecover }
+                ]
+            });
+        }
+
+        function gatherIntel() {
+            const outcomes = [
+                { text: "Your investigation reveals crucial information about the job.", hpChange: -5, creditsChange: -50, repChange: 1 },
+                { text: "You uncover a hidden danger in the mission.", hpChange: -10, creditsChange: -30, repChange: 2 },
+                { text: "Your efforts yield no new information.", hpChange: -5, creditsChange: -20, repChange: 0 }
+            ];
+            const outcome = getRandomElement(outcomes);
+            updateStats(outcome.hpChange, outcome.creditsChange, outcome.repChange);
+            showScene({
+                text: outcome.text + " What's your next step?",
+                choices: [
+                    { text: "Proceed with the job", action: acceptJob },
+                    { text: "Abandon this lead", action: () => showScene(generateScene()) },
+                    { text: "Prepare yourself", action: visitBlackMarket }
+                ]
+            });
+        }
+
+        function walkAway() {
+            const outcomes = [
+                { text: "You avoid potential danger, but miss out on the opportunity.", repChange: -1 },
+                { text: "Your caution is noted by others in the underworld.", repChange: 1 },
+                { text: "Nothing of note happens as you leave.", repChange: 0 }
+            ];
+            const outcome = getRandomElement(outcomes);
+            updateStats(0, 0, outcome.repChange);
+            showScene({
+                text: outcome.text + " Where do you head next?",
+                choices: [
+                    { text: "Look for another job", action: () => showScene(generateScene()) },
+                    { text: "Visit the black market", action: visitBlackMarket },
+                    { text: "Rest and recover", action: restRecover }
+                ]
+            });
+        }
+
+        function visitBlackMarket() {
+            const items = [
+                { name: "Cyberdeck upgrade", cost: 200, effect: () => { inventory.push("Cyberdeck upgrade"); updateStats(0, -200, 0); } },
+                { name: "Medkit", cost: 100, effect: () => { inventory.push("Medkit"); updateStats(0, -100, 0); } },
+                { name: "Neural enhancer", cost: 300, effect: () => { inventory.push("Neural enhancer"); updateStats(0, -300, 1); } }
+            ];
+            showScene({
+                text: "You enter the black market. What would you like to buy?",
+                choices: [
+                    ...items.map(item => ({ 
+                        text: `${item.name} (${item.cost} credits)`, 
+                        action: () => {
+                            if (credits >= item.cost) {
+                                item.effect();
+                                showScene(generateScene());
+                            } else {
+                                alert("Not enough credits!");
+                            }
+                        }
+                    })),
+                    { text: "Leave the market", action: () => showScene(generateScene()) }
+                ]
+            });
+        }
+
+        function restRecover() {
+            const healAmount = Math.floor(Math.random() * 30) + 20;
+            updateStats(healAmount, -50, 0);
+            showScene({
+                text: `You take some time to rest and recover. You heal ${healAmount} HP, but spend 50 credits on accommodations and supplies. What now?`,
+                choices: [
+                    { text: "Look for a job", action: () => showScene(generateScene()) },
+                    { text: "Visit the black market", action: visitBlackMarket },
+                    { text: "Continue exploring", action: () => showScene(generateScene()) }
+                ]
+            });
+        }
+
+        // Start the game
+        showScene({
+            text: "Welcome to NeoTokyo Nights. Your cyberpunk adventure begins now. Ready to dive in?",
+            choices: [
+                { text: "Start your journey", action: () => showScene(generateScene()) }
+            ]
+        });
+        updateStats();
+    </script>
+</body>
+</html>

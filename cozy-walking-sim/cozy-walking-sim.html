@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cozy Walking Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2c5530 0%, #1a3d1f 100%);
+            overflow: hidden;
+            cursor: none;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #instructions {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            font-size: 14px;
+            line-height: 1.6;
+            max-width: 300px;
+            z-index: 1000;
+            transition: opacity 0.3s ease;
+        }
+
+        #instructions h3 {
+            margin-bottom: 10px;
+            color: #88c999;
+            font-size: 16px;
+        }
+
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(44, 85, 48, 0.95) 0%, rgba(26, 61, 31, 0.95) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+        }
+
+        #startScreen h1 {
+            color: white;
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        #startScreen p {
+            color: #b8e6c1;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 600px;
+            line-height: 1.6;
+        }
+
+        #startButton {
+            background: linear-gradient(135deg, #4a7c59 0%, #5d8a6b 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        #startButton:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(135deg, #5d8a6b 0%, #6b9d7a 100%);
+        }
+
+        #loadingBar {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        #loadingProgress {
+            height: 100%;
+            background: linear-gradient(90deg, #4a7c59, #88c999);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .fade-out {
+            opacity: 0 !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="startScreen">
+            <h1>🌲 Cozy Walking Simulator</h1>
+            <p>Take a peaceful stroll through a serene forest. Listen to the gentle sounds of nature as you explore at your own pace. This is your moment of tranquility.</p>
+            <button id="startButton">Begin Your Journey</button>
+            <div id="loadingBar">
+                <div id="loadingProgress"></div>
+            </div>
+        </div>
+
+        <div id="instructions">
+            <h3>🎮 Controls</h3>
+            <div><strong>WASD</strong> - Move around</div>
+            <div><strong>Mouse</strong> - Look around</div>
+            <div><strong>Shift</strong> - Walk faster</div>
+            <div><strong>ESC</strong> - Exit pointer lock</div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        class CozyWalkingSimulator {
+            constructor() {
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.clock = new THREE.Clock();
+                
+                this.moveForward = false;
+                this.moveBackward = false;
+                this.moveLeft = false;
+                this.moveRight = false;
+                this.canJump = false;
+                this.isRunning = false;
+                
+                this.velocity = new THREE.Vector3();
+                this.direction = new THREE.Vector3();
+                
+                // Camera rotation
+                this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
+                this.PI_2 = Math.PI / 2;
+                this.minPolarAngle = 0;
+                this.maxPolarAngle = Math.PI;
+                
+                this.isLocked = false;
+                
+                this.raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 10);
+                this.objects = [];
+                
+                this.init();
+            }
+
+            init() {
+                this.createScene();
+                this.createCamera();
+                this.createRenderer();
+                this.createLighting();
+                this.createEnvironment();
+                this.createControls();
+                this.setupEventListeners();
+                this.animate();
+            }
+
+            createScene() {
+                this.scene = new THREE.Scene();
+                this.scene.fog = new THREE.Fog(0x87CEEB, 50, 200);
+                this.scene.background = new THREE.Color(0x87CEEB);
+            }
+
+            createCamera() {
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.camera.position.set(0, 10, 0);
+            }
+
+            createRenderer() {
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                this.renderer.physicallyCorrectLights = true;
+                this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                this.renderer.toneMappingExposure = 0.8;
+                document.getElementById('gameContainer').appendChild(this.renderer.domElement);
+            }
+
+            createLighting() {
+                // Ambient light for soft global illumination
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+                this.scene.add(ambientLight);
+
+                // Directional light for sun
+                const directionalLight = new THREE.DirectionalLight(0xfff8dc, 0.8);
+                directionalLight.position.set(50, 50, 0);
+                directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 2048;
+                directionalLight.shadow.mapSize.height = 2048;
+                directionalLight.shadow.camera.near = 0.5;
+                directionalLight.shadow.camera.far = 500;
+                directionalLight.shadow.camera.left = -100;
+                directionalLight.shadow.camera.right = 100;
+                directionalLight.shadow.camera.top = 100;
+                directionalLight.shadow.camera.bottom = -100;
+                this.scene.add(directionalLight);
+
+                // Hemisphere light for natural sky lighting
+                const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x2F4F2F, 0.4);
+                this.scene.add(hemisphereLight);
+            }
+
+            createEnvironment() {
+                this.createTerrain();
+                this.createTrees();
+                this.createGrass();
+                this.createRocks();
+                this.createPath();
+            }
+
+            createTerrain() {
+                const geometry = new THREE.PlaneGeometry(1000, 1000, 128, 128);
+                
+                // Add some gentle height variation
+                const vertices = geometry.attributes.position.array;
+                for (let i = 0; i < vertices.length; i += 3) {
+                    const x = vertices[i];
+                    const z = vertices[i + 2];
+                    vertices[i + 1] = Math.sin(x * 0.01) * Math.cos(z * 0.01) * 2;
+                }
+                geometry.attributes.position.needsUpdate = true;
+                geometry.computeVertexNormals();
+
+                const material = new THREE.MeshLambertMaterial({ 
+                    color: 0x3a5f3a,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                
+                const terrain = new THREE.Mesh(geometry, material);
+                terrain.rotation.x = -Math.PI / 2;
+                terrain.receiveShadow = true;
+                this.scene.add(terrain);
+                this.objects.push(terrain);
+            }
+
+            createTrees() {
+                const treePositions = [
+                    [-30, 0, -40], [25, 0, -35], [-15, 0, 30], [40, 0, 20],
+                    [-50, 0, 10], [60, 0, -20], [-25, 0, 50], [35, 0, 45],
+                    [-60, 0, -15], [15, 0, -60], [50, 0, 35], [-40, 0, -30],
+                    [20, 0, 25], [-35, 0, -10], [45, 0, -45], [-20, 0, 15]
+                ];
+
+                treePositions.forEach(pos => {
+                    this.createTree(pos[0], pos[1], pos[2]);
+                });
+            }
+
+            createTree(x, y, z) {
+                const group = new THREE.Group();
+
+                // Trunk
+                const trunkGeometry = new THREE.CylinderGeometry(0.8, 1.2, 8, 8);
+                const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x4a3728 });
+                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                trunk.position.y = 4;
+                trunk.castShadow = true;
+                group.add(trunk);
+
+                // Foliage layers for more natural look
+                const foliageColors = [0x2d5a2d, 0x3a6b3a, 0x4a7c4a];
+                const foliageSizes = [6, 5, 4];
+                
+                foliageColors.forEach((color, i) => {
+                    const foliageGeometry = new THREE.SphereGeometry(foliageSizes[i], 8, 6);
+                    const foliageMaterial = new THREE.MeshLambertMaterial({ color });
+                    const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
+                    foliage.position.y = 8 + i * 2;
+                    foliage.castShadow = true;
+                    group.add(foliage);
+                });
+
+                group.position.set(x, y, z);
+                this.scene.add(group);
+            }
+
+            createGrass() {
+                const grassGroup = new THREE.Group();
+                
+                for (let i = 0; i < 200; i++) {
+                    const grassBlade = this.createGrassBlade();
+                    grassBlade.position.set(
+                        (Math.random() - 0.5) * 200,
+                        0.5,
+                        (Math.random() - 0.5) * 200
+                    );
+                    grassBlade.rotation.y = Math.random() * Math.PI * 2;
+                    grassGroup.add(grassBlade);
+                }
+                
+                this.scene.add(grassGroup);
+            }
+
+            createGrassBlade() {
+                const geometry = new THREE.ConeGeometry(0.1, 2, 3);
+                const material = new THREE.MeshLambertMaterial({ 
+                    color: 0x4a7c4a,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const grass = new THREE.Mesh(geometry, material);
+                grass.position.y = 1;
+                return grass;
+            }
+
+            createRocks() {
+                const rockPositions = [
+                    [10, 0, 15], [-20, 0, 25], [30, 0, -10], [-15, 0, -25],
+                    [25, 0, 30], [-30, 0, 5], [40, 0, -30]
+                ];
+
+                rockPositions.forEach(pos => {
+                    const rock = this.createRock();
+                    rock.position.set(pos[0], pos[1], pos[2]);
+                    this.scene.add(rock);
+                });
+            }
+
+            createRock() {
+                const geometry = new THREE.DodecahedronGeometry(Math.random() * 2 + 1, 0);
+                const material = new THREE.MeshLambertMaterial({ color: 0x666666 });
+                const rock = new THREE.Mesh(geometry, material);
+                rock.castShadow = true;
+                rock.receiveShadow = true;
+                
+                // Random rotation and scaling
+                rock.rotation.set(
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI
+                );
+                rock.scale.set(
+                    Math.random() * 0.5 + 0.5,
+                    Math.random() * 0.5 + 0.5,
+                    Math.random() * 0.5 + 0.5
+                );
+                
+                return rock;
+            }
+
+            createPath() {
+                const pathGeometry = new THREE.PlaneGeometry(4, 100);
+                const pathMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0x8b7355,
+                    transparent: true,
+                    opacity: 0.7
+                });
+                const path = new THREE.Mesh(pathGeometry, pathMaterial);
+                path.rotation.x = -Math.PI / 2;
+                path.position.y = 0.1;
+                path.receiveShadow = true;
+                this.scene.add(path);
+            }
+
+            createControls() {
+                // Custom first-person controls
+                this.camera.rotation.set(0, 0, 0);
+                this.camera.position.set(0, 10, 0);
+            }
+
+            setupEventListeners() {
+                // Start button
+                document.getElementById('startButton').addEventListener('click', () => {
+                    this.startGame();
+                });
+
+                // Keyboard events
+                document.addEventListener('keydown', (event) => this.onKeyDown(event));
+                document.addEventListener('keyup', (event) => this.onKeyUp(event));
+
+                // Mouse movement
+                document.addEventListener('mousemove', (event) => this.onMouseMove(event));
+
+                // Pointer lock events
+                document.addEventListener('pointerlockchange', () => {
+                    if (document.pointerLockElement === document.body) {
+                        this.isLocked = true;
+                        document.getElementById('instructions').style.opacity = '1';
+                    } else {
+                        this.isLocked = false;
+                        document.getElementById('instructions').style.opacity = '0.5';
+                    }
+                });
+
+                // Window resize
+                window.addEventListener('resize', () => this.onWindowResize());
+            }
+
+            async startGame() {
+                const startScreen = document.getElementById('startScreen');
+                const loadingProgress = document.getElementById('loadingProgress');
+                
+                // Simulate loading
+                for (let i = 0; i <= 100; i += 10) {
+                    loadingProgress.style.width = i + '%';
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+
+                startScreen.style.opacity = '0';
+                setTimeout(() => {
+                    startScreen.style.display = 'none';
+                    document.body.requestPointerLock();
+                }, 500);
+            }
+
+            onKeyDown(event) {
+                switch (event.code) {
+                    case 'ArrowUp':
+                    case 'KeyW':
+                        this.moveForward = true;
+                        break;
+                    case 'ArrowLeft':
+                    case 'KeyA':
+                        this.moveLeft = true;
+                        break;
+                    case 'ArrowDown':
+                    case 'KeyS':
+                        this.moveBackward = true;
+                        break;
+                    case 'ArrowRight':
+                    case 'KeyD':
+                        this.moveRight = true;
+                        break;
+                    case 'ShiftLeft':
+                    case 'ShiftRight':
+                        this.isRunning = true;
+                        break;
+                    case 'Escape':
+                        document.exitPointerLock();
+                        break;
+                }
+            }
+
+            onMouseMove(event) {
+                if (!this.isLocked) return;
+
+                const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
+                const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
+
+                this.euler.setFromQuaternion(this.camera.quaternion);
+
+                this.euler.y -= movementX * 0.002;
+                this.euler.x -= movementY * 0.002;
+
+                this.euler.x = Math.max(this.PI_2 - this.maxPolarAngle, Math.min(this.PI_2 - this.minPolarAngle, this.euler.x));
+
+                this.camera.quaternion.setFromEuler(this.euler);
+            }
+
+            onKeyUp(event) {
+                switch (event.code) {
+                    case 'ArrowUp':
+                    case 'KeyW':
+                        this.moveForward = false;
+                        break;
+                    case 'ArrowLeft':
+                    case 'KeyA':
+                        this.moveLeft = false;
+                        break;
+                    case 'ArrowDown':
+                    case 'KeyS':
+                        this.moveBackward = false;
+                        break;
+                    case 'ArrowRight':
+                    case 'KeyD':
+                        this.moveRight = false;
+                        break;
+                    case 'ShiftLeft':
+                    case 'ShiftRight':
+                        this.isRunning = false;
+                        break;
+                }
+            }
+
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            updateMovement(delta) {
+                const speed = this.isRunning ? 50 : 25;
+                
+                this.velocity.x -= this.velocity.x * 10.0 * delta;
+                this.velocity.z -= this.velocity.z * 10.0 * delta;
+                this.velocity.y -= 9.8 * 100.0 * delta; // gravity
+
+                this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
+                this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
+                this.direction.normalize();
+
+                if (this.moveForward || this.moveBackward) this.velocity.z -= this.direction.z * speed * delta;
+                if (this.moveLeft || this.moveRight) this.velocity.x -= this.direction.x * speed * delta;
+
+                // Get camera direction vectors
+                const forward = new THREE.Vector3();
+                const right = new THREE.Vector3();
+                
+                this.camera.getWorldDirection(forward);
+                right.crossVectors(forward, this.camera.up).normalize();
+                
+                // Move based on camera direction
+                const moveVector = new THREE.Vector3();
+                moveVector.addScaledVector(right, -this.velocity.x * delta);
+                moveVector.addScaledVector(forward, -this.velocity.z * delta);
+                moveVector.y = this.velocity.y * delta;
+                
+                this.camera.position.add(moveVector);
+
+                if (this.camera.position.y < 10) {
+                    this.velocity.y = 0;
+                    this.camera.position.y = 10;
+                    this.canJump = true;
+                }
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+
+                const delta = this.clock.getDelta();
+
+                if (this.isLocked) {
+                    this.updateMovement(delta);
+                }
+
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        // Initialize the game when the page loads
+        window.addEventListener('load', () => {
+            new CozyWalkingSimulator();
+        });
+    </script>
+</body>
+</html>

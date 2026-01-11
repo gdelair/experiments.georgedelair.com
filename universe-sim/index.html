@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universe Simulator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            background: #000;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            min-width: 280px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+
+        .control-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .control-section h3 {
+            margin: 0 0 12px 0;
+            color: #4fc3f7;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .slider-group {
+            margin-bottom: 12px;
+        }
+
+        .slider-group label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 5px;
+            color: #ccc;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #333;
+            outline: none;
+            margin-bottom: 5px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4fc3f7;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(79, 195, 247, 0.4);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: linear-gradient(45deg, #4fc3f7, #29b6f6);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            flex: 1;
+            min-width: 80px;
+        }
+
+        button:hover {
+            background: linear-gradient(45deg, #29b6f6, #0288d1);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(79, 195, 247, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        button.secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .info-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            max-width: 300px;
+            display: none;
+        }
+
+        .info-panel.visible {
+            display: block;
+        }
+
+        .info-panel h4 {
+            margin: 0 0 10px 0;
+            color: #4fc3f7;
+        }
+
+        .info-panel p {
+            margin: 5px 0;
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .performance-meter {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 12px;
+        }
+
+        .fps-display {
+            color: #4fc3f7;
+            font-weight: bold;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .loading h2 {
+            color: #4fc3f7;
+            margin-bottom: 20px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(79, 195, 247, 0.3);
+            border-top: 3px solid #4fc3f7;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .stats {
+            color: #ccc;
+            font-size: 12px;
+        }
+
+        .back-button {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: #ff4444;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .back-button:hover {
+            background: #ff6666;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 68, 68, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .control-panel {
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                min-width: auto;
+                max-width: none;
+            }
+            
+            .performance-meter {
+                top: 10px;
+                right: 10px;
+            }
+            
+            .info-panel {
+                bottom: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div class="loading" id="loading-screen">
+        <h2>Initializing Universe...</h2>
+        <div class="spinner"></div>
+        <p style="margin-top: 20px; color: #ccc; font-size: 14px;">
+            Loading physics engine and 3D renderer...
+        </p>
+    </div>
+
+    <div class="control-panel" id="control-panel" style="display: none;">
+        <div class="control-section">
+            <h3>Galaxy Generation</h3>
+            <div class="button-group">
+                <button onclick="generateGalaxy('spiral')">Spiral</button>
+                <button onclick="generateGalaxy('elliptical')">Elliptical</button>
+                <button onclick="generateGalaxy('irregular')">Irregular</button>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <h3>Simulation Control</h3>
+            <div class="button-group">
+                <button id="pauseBtn" onclick="togglePause()">Pause</button>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <h3>Physics Parameters</h3>
+            <div class="slider-group">
+                <label id="timeScaleLabel">Time Scale: 1.0x</label>
+                <input type="range" id="timeScaleSlider" min="0.1" max="5" step="0.1" value="1" oninput="updateTimeScale(this.value)">
+            </div>
+            <div class="slider-group">
+                <label id="gravityLabel">Gravity Strength: 1.0x</label>
+                <input type="range" id="gravitySlider" min="0.1" max="3" step="0.1" value="1" oninput="updateGravity(this.value)">
+            </div>
+        </div>
+
+        <div class="control-section">
+            <h3>Statistics</h3>
+            <p class="stats">Bodies: <span id="bodyCount">0</span></p>
+            <p class="stats">Status: <span id="status">Running</span></p>
+        </div>
+    </div>
+
+    <div class="performance-meter" id="performance-meter" style="display: none;">
+        <div class="fps-display">FPS: <span id="fps">60</span></div>
+        <div>Bodies: <span id="bodyCountDisplay">0</span></div>
+    </div>
+
+    <script>
+        // Physics Constants (balanced for stable, meditative motion)
+        const PHYSICS_CONSTANTS = {
+            G: 0.05, // Much gentler gravity
+            TIME_SCALE: 1000,
+            MIN_DISTANCE: 0.5,
+            COLLISION_THRESHOLD: 0.3,
+            PARTICLE_COUNT: 500,
+            MAX_VELOCITY: 15 // Moderate max velocity
+        };
+
+        // Body Types
+        const BODY_TYPES = {
+            STAR: 'star',
+            PLANET: 'planet',
+            ASTEROID: 'asteroid',
+            BLACK_HOLE: 'blackhole'
+        };
+
+        // Galaxy Types
+        const GALAXY_TYPES = {
+            SPIRAL: 'spiral',
+            ELLIPTICAL: 'elliptical',
+            IRREGULAR: 'irregular'
+        };
+
+        // Vector3 utility class
+        class Vector3D {
+            constructor(x = 0, y = 0, z = 0) {
+                this.x = x;
+                this.y = y;
+                this.z = z;
+            }
+
+            add(v) {
+                return new Vector3D(this.x + v.x, this.y + v.y, this.z + v.z);
+            }
+
+            subtract(v) {
+                return new Vector3D(this.x - v.x, this.y - v.y, this.z - v.z);
+            }
+
+            multiply(scalar) {
+                return new Vector3D(this.x * scalar, this.y * scalar, this.z * scalar);
+            }
+
+            magnitude() {
+                return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
+            }
+
+            normalize() {
+                const mag = this.magnitude();
+                return mag > 0 ? this.multiply(1 / mag) : new Vector3D();
+            }
+
+            distanceTo(v) {
+                return this.subtract(v).magnitude();
+            }
+
+            clone() {
+                return new Vector3D(this.x, this.y, this.z);
+            }
+        }
+
+        // Celestial Body class
+        class CelestialBody {
+            constructor(options = {}) {
+                this.id = Math.random().toString(36).substr(2, 9);
+                this.position = options.position || new Vector3D();
+                this.velocity = options.velocity || new Vector3D();
+                this.acceleration = new Vector3D();
+                this.mass = options.mass || 1;
+                this.radius = options.radius || 0.1;
+                this.type = options.type || BODY_TYPES.STAR;
+                this.color = options.color || 0xffffff;
+                this.temperature = options.temperature || 5778;
+                this.age = options.age || 0;
+                this.trails = [];
+                this.maxTrailLength = 100;
+                this.mesh = null;
+                this.selected = false;
+            }
+
+            applyForce(force) {
+                this.acceleration = this.acceleration.add(force.multiply(1 / this.mass));
+            }
+
+            update(deltaTime) {
+                this.velocity = this.velocity.add(this.acceleration.multiply(deltaTime));
+                
+                const velMag = this.velocity.magnitude();
+                if (velMag > PHYSICS_CONSTANTS.MAX_VELOCITY) {
+                    this.velocity = this.velocity.normalize().multiply(PHYSICS_CONSTANTS.MAX_VELOCITY);
+                }
+                
+                this.position = this.position.add(this.velocity.multiply(deltaTime));
+                
+                this.trails.push(this.position.clone());
+                if (this.trails.length > this.maxTrailLength) {
+                    this.trails.shift();
+                }
+                
+                this.acceleration = new Vector3D();
+                this.age += deltaTime;
+            }
+
+            calculateGravityFrom(other) {
+                const direction = other.position.subtract(this.position);
+                const distance = Math.max(direction.magnitude(), PHYSICS_CONSTANTS.MIN_DISTANCE);
+                const forceMagnitude = (PHYSICS_CONSTANTS.G * this.mass * other.mass) / (distance * distance);
+                return direction.normalize().multiply(forceMagnitude);
+            }
+
+            checkCollision(other) {
+                const distance = this.position.distanceTo(other.position);
+                return distance < (this.radius + other.radius);
+            }
+
+            merge(other) {
+                const totalMass = this.mass + other.mass;
+                const newVelocity = this.velocity.multiply(this.mass)
+                    .add(other.velocity.multiply(other.mass))
+                    .multiply(1 / totalMass);
+                
+                this.velocity = newVelocity;
+                this.mass = totalMass;
+                this.radius = Math.pow(Math.pow(this.radius, 3) + Math.pow(other.radius, 3), 1/3);
+                
+                this.temperature = (this.temperature * this.mass + other.temperature * other.mass) / totalMass;
+                this.updateColorFromTemperature();
+            }
+
+            updateColorFromTemperature() {
+                // More vibrant, epic color mapping
+                if (this.temperature < 3500) {
+                    this.color = 0xff3333; // Bright red
+                } else if (this.temperature < 5000) {
+                    this.color = 0xff8833; // Vibrant orange
+                } else if (this.temperature < 6000) {
+                    this.color = 0xffff66; // Bright yellow
+                } else if (this.temperature < 7500) {
+                    this.color = 0xffffdd; // Brilliant white
+                } else {
+                    this.color = 0x6666ff; // Electric blue
+                }
+            }
+        }
+
+        // Galaxy Generator class
+        class GalaxyGenerator {
+            static generateSpiral(options = {}) {
+                const {
+                    armCount = 3,
+                    starCount = 300,
+                    maxRadius = 50,
+                    armTightness = 0.3,
+                    centralBulgeRatio = 0.3
+                } = options;
+
+                const bodies = [];
+                const centralMass = 1500; // Moderate central mass for gentle gravity
+
+                // Epic central supermassive star instead of black hole
+                bodies.push(new CelestialBody({
+                    position: new Vector3D(0, 0, 0),
+                    mass: centralMass,
+                    radius: 4, // Large, brilliant central star
+                    type: BODY_TYPES.STAR,
+                    color: 0xffffcc, // Brilliant white-yellow
+                    temperature: 8000 // Hot, bright star
+                }));
+
+                const bulgeStars = Math.floor(starCount * centralBulgeRatio);
+                for (let i = 0; i < bulgeStars; i++) {
+                    const distance = Math.random() * maxRadius * 0.3;
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = (Math.random() - 0.5) * Math.PI * 0.2;
+                    
+                    const x = distance * Math.cos(theta) * Math.cos(phi);
+                    const y = distance * Math.sin(phi);
+                    const z = distance * Math.sin(theta) * Math.cos(phi);
+                    
+                    const star = this.createStar(new Vector3D(x, y, z), centralMass, distance);
+                    bodies.push(star);
+                }
+
+                const armStars = starCount - bulgeStars;
+                for (let i = 0; i < armStars; i++) {
+                    const armIndex = Math.floor(Math.random() * armCount);
+                    const armAngle = (armIndex / armCount) * Math.PI * 2;
+                    const distance = (Math.random() * 0.8 + 0.2) * maxRadius;
+                    const spiralAngle = armAngle + distance * armTightness + (Math.random() - 0.5) * 0.5;
+                    
+                    const x = distance * Math.cos(spiralAngle);
+                    const z = distance * Math.sin(spiralAngle);
+                    const y = (Math.random() - 0.5) * maxRadius * 0.1;
+                    
+                    const star = this.createStar(new Vector3D(x, y, z), centralMass, distance);
+                    bodies.push(star);
+                }
+
+                return bodies;
+            }
+
+            static generateElliptical(options = {}) {
+                const {
+                    starCount = 400,
+                    maxRadius = 40,
+                    ellipticity = 0.7
+                } = options;
+
+                const bodies = [];
+                const centralMass = 2000; // Moderate mass for elliptical
+
+                // Epic central supergiant star
+                bodies.push(new CelestialBody({
+                    position: new Vector3D(0, 0, 0),
+                    mass: centralMass,
+                    radius: 5, // Massive central star
+                    type: BODY_TYPES.STAR,
+                    color: 0xffccaa, // Warm orange supergiant
+                    temperature: 4500
+                }));
+
+                for (let i = 0; i < starCount; i++) {
+                    const u = Math.random();
+                    const v = Math.random();
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(2 * v - 1);
+                    
+                    const distance = maxRadius * Math.pow(u, 1/3);
+                    const x = distance * Math.sin(phi) * Math.cos(theta) * ellipticity;
+                    const y = distance * Math.cos(phi);
+                    const z = distance * Math.sin(phi) * Math.sin(theta);
+                    
+                    const star = this.createStar(new Vector3D(x, y, z), centralMass, distance);
+                    bodies.push(star);
+                }
+
+                return bodies;
+            }
+
+            static generateIrregular(options = {}) {
+                const {
+                    starCount = 200,
+                    maxRadius = 30,
+                    clusterCount = 5
+                } = options;
+
+                const bodies = [];
+                const clusters = [];
+
+                for (let i = 0; i < clusterCount; i++) {
+                    clusters.push({
+                        center: new Vector3D(
+                            (Math.random() - 0.5) * maxRadius,
+                            (Math.random() - 0.5) * maxRadius * 0.5,
+                            (Math.random() - 0.5) * maxRadius
+                        ),
+                        mass: 100 + Math.random() * 400,
+                        radius: 5 + Math.random() * 10
+                    });
+                }
+
+                clusters.forEach(cluster => {
+                    bodies.push(new CelestialBody({
+                        position: cluster.center,
+                        mass: cluster.mass,
+                        radius: 1,
+                        type: BODY_TYPES.BLACK_HOLE,
+                        color: 0x440044
+                    }));
+                });
+
+                for (let i = 0; i < starCount; i++) {
+                    const cluster = clusters[Math.floor(Math.random() * clusters.length)];
+                    const localRadius = Math.random() * cluster.radius;
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.random() * Math.PI;
+                    
+                    const localX = localRadius * Math.sin(phi) * Math.cos(theta);
+                    const localY = localRadius * Math.cos(phi);
+                    const localZ = localRadius * Math.sin(phi) * Math.sin(theta);
+                    
+                    const position = cluster.center.add(new Vector3D(localX, localY, localZ));
+                    const star = this.createStar(position, cluster.mass, localRadius);
+                    bodies.push(star);
+                }
+
+                return bodies;
+            }
+
+            static createStar(position, centralMass, distance) {
+                const mass = 0.5 + Math.random() * 2;
+                const temperature = 3000 + Math.random() * 7000;
+                
+                // Gentle, stable orbital velocity calculation
+                const orbitalSpeed = Math.sqrt(PHYSICS_CONSTANTS.G * centralMass / Math.max(distance, 1)) * 1.1; // Slightly faster than circular for gentle ellipses
+                const velocityDirection = new Vector3D(-position.z, 0, position.x).normalize();
+                const velocity = velocityDirection.multiply(orbitalSpeed);
+                
+                // Add tiny random velocity components for subtle variation (much smaller than before)
+                velocity.x += (Math.random() - 0.5) * orbitalSpeed * 0.05;
+                velocity.y += (Math.random() - 0.5) * orbitalSpeed * 0.02;
+                velocity.z += (Math.random() - 0.5) * orbitalSpeed * 0.05;
+                
+                const star = new CelestialBody({
+                    position,
+                    velocity,
+                    mass,
+                    radius: 0.2 + mass * 0.15, // Moderate size for visibility
+                    type: BODY_TYPES.STAR,
+                    temperature
+                });
+                
+                star.updateColorFromTemperature();
+                return star;
+            }
+        }
+
+        // Physics Engine class
+        class PhysicsEngine {
+            constructor() {
+                this.bodies = [];
+                this.timeScale = 1;
+                this.paused = false;
+                this.collisionsEnabled = true;
+                this.gravityStrength = 1;
+            }
+
+            addBody(body) {
+                this.bodies.push(body);
+            }
+
+            removeBody(body) {
+                const index = this.bodies.indexOf(body);
+                if (index > -1) {
+                    this.bodies.splice(index, 1);
+                }
+            }
+
+            clearBodies() {
+                this.bodies = [];
+            }
+
+            update(deltaTime) {
+                if (this.paused) return;
+
+                // Gentle time scaling for meditative motion
+                const scaledDelta = deltaTime * this.timeScale * 0.003;
+
+                for (let i = 0; i < this.bodies.length; i++) {
+                    for (let j = i + 1; j < this.bodies.length; j++) {
+                        const bodyA = this.bodies[i];
+                        const bodyB = this.bodies[j];
+                        
+                        // NO COLLISIONS - bodies pass through each other for pure gravitational dance
+                        const force = bodyA.calculateGravityFrom(bodyB).multiply(this.gravityStrength);
+                        bodyA.applyForce(force);
+                        bodyB.applyForce(force.multiply(-1));
+                    }
+                }
+
+                this.bodies.forEach(body => body.update(scaledDelta));
+            }
+
+            handleCollision(bodyA, bodyB) {
+                if (bodyA.mass >= bodyB.mass) {
+                    bodyA.merge(bodyB);
+                    this.removeBody(bodyB);
+                } else {
+                    bodyB.merge(bodyA);
+                    this.removeBody(bodyA);
+                }
+            }
+        }
+
+        // Renderer class
+        class UniverseRenderer {
+            constructor(container) {
+                this.container = container;
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                this.raycaster = new THREE.Raycaster();
+                this.mouse = new THREE.Vector2();
+                
+                this.init();
+            }
+
+            init() {
+                console.log('Setting up WebGL renderer...');
+                
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setClearColor(0x000008, 1);
+                
+                if (!this.renderer.getContext()) {
+                    throw new Error('WebGL not supported');
+                }
+                
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                this.container.appendChild(this.renderer.domElement);
+
+                this.camera.position.set(0, 30, 50);
+                this.camera.lookAt(0, 0, 0);
+
+                this.setupControls();
+
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.1);
+                this.scene.add(ambientLight);
+
+                this.createStarfield();
+
+                window.addEventListener('resize', () => this.onWindowResize());
+                
+                console.log('Renderer initialized successfully');
+            }
+
+            setupControls() {
+                let isDragging = false;
+                let previousMousePosition = { x: 0, y: 0 };
+                let cameraRadius = this.camera.position.length();
+                let cameraTheta = Math.atan2(this.camera.position.z, this.camera.position.x);
+                let cameraPhi = Math.acos(this.camera.position.y / cameraRadius);
+
+                this.renderer.domElement.addEventListener('mousedown', (event) => {
+                    if (event.button === 0) {
+                        isDragging = true;
+                        previousMousePosition = { x: event.clientX, y: event.clientY };
+                    }
+                });
+
+                this.renderer.domElement.addEventListener('mousemove', (event) => {
+                    if (isDragging) {
+                        const deltaX = event.clientX - previousMousePosition.x;
+                        const deltaY = event.clientY - previousMousePosition.y;
+                        
+                        cameraTheta -= deltaX * 0.01;
+                        cameraPhi += deltaY * 0.01;
+                        cameraPhi = Math.max(0.1, Math.min(Math.PI - 0.1, cameraPhi));
+                        
+                        this.updateCameraPosition(cameraRadius, cameraTheta, cameraPhi);
+                        previousMousePosition = { x: event.clientX, y: event.clientY };
+                    }
+                });
+
+                this.renderer.domElement.addEventListener('mouseup', () => {
+                    isDragging = false;
+                });
+
+                this.renderer.domElement.addEventListener('wheel', (event) => {
+                    cameraRadius += event.deltaY * 0.01;
+                    cameraRadius = Math.max(5, Math.min(200, cameraRadius));
+                    this.updateCameraPosition(cameraRadius, cameraTheta, cameraPhi);
+                });
+            }
+
+            updateCameraPosition(radius, theta, phi) {
+                this.camera.position.x = radius * Math.sin(phi) * Math.cos(theta);
+                this.camera.position.y = radius * Math.cos(phi);
+                this.camera.position.z = radius * Math.sin(phi) * Math.sin(theta);
+                this.camera.lookAt(0, 0, 0);
+            }
+
+            createStarfield() {
+                // Enhanced starfield with multiple layers and colors
+                const starGeometry = new THREE.BufferGeometry();
+                const starCount = 3000;
+                const positions = new Float32Array(starCount * 3);
+                const colors = new Float32Array(starCount * 3);
+                
+                for (let i = 0; i < starCount; i++) {
+                    const i3 = i * 3;
+                    
+                    // Position
+                    positions[i3] = (Math.random() - 0.5) * 600;
+                    positions[i3 + 1] = (Math.random() - 0.5) * 600;
+                    positions[i3 + 2] = (Math.random() - 0.5) * 600;
+                    
+                    // Color variation for more epic feeling
+                    const starType = Math.random();
+                    if (starType < 0.7) {
+                        // White/blue stars
+                        colors[i3] = 0.8 + Math.random() * 0.2;     // R
+                        colors[i3 + 1] = 0.8 + Math.random() * 0.2; // G
+                        colors[i3 + 2] = 1.0;                       // B
+                    } else if (starType < 0.9) {
+                        // Yellow/orange stars
+                        colors[i3] = 1.0;                           // R
+                        colors[i3 + 1] = 0.6 + Math.random() * 0.4; // G
+                        colors[i3 + 2] = 0.2 + Math.random() * 0.3; // B
+                    } else {
+                        // Red stars
+                        colors[i3] = 1.0;                           // R
+                        colors[i3 + 1] = 0.2 + Math.random() * 0.3; // G
+                        colors[i3 + 2] = 0.1 + Math.random() * 0.2; // B
+                    }
+                }
+                
+                starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                starGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                
+                const starMaterial = new THREE.PointsMaterial({ 
+                    size: 1.5,
+                    vertexColors: true,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                
+                const starField = new THREE.Points(starGeometry, starMaterial);
+                this.scene.add(starField);
+
+                // Add nebula-like background clouds
+                this.createNebula();
+            }
+
+            createNebula() {
+                // Create subtle nebula clouds for epic background
+                const nebulaCount = 8;
+                const nebulaColors = [
+                    [0.5, 0.2, 0.8], // Purple
+                    [0.2, 0.5, 0.8], // Blue
+                    [0.8, 0.3, 0.5], // Pink
+                    [0.3, 0.8, 0.5], // Green
+                    [0.8, 0.5, 0.2]  // Orange
+                ];
+
+                for (let i = 0; i < nebulaCount; i++) {
+                    const nebulaGeometry = new THREE.SphereGeometry(80 + Math.random() * 40, 8, 8);
+                    const colorIndex = Math.floor(Math.random() * nebulaColors.length);
+                    const color = nebulaColors[colorIndex];
+                    
+                    const nebulaMaterial = new THREE.MeshBasicMaterial({
+                        color: new THREE.Color(color[0], color[1], color[2]),
+                        transparent: true,
+                        opacity: 0.03,
+                        side: THREE.BackSide
+                    });
+
+                    const nebulaMesh = new THREE.Mesh(nebulaGeometry, nebulaMaterial);
+                    nebulaMesh.position.set(
+                        (Math.random() - 0.5) * 400,
+                        (Math.random() - 0.5) * 200,
+                        (Math.random() - 0.5) * 400
+                    );
+                    
+                    this.scene.add(nebulaMesh);
+                }
+            }
+
+            createBodyMesh(body) {
+                let geometry, material;
+                
+                switch (body.type) {
+                    case BODY_TYPES.STAR:
+                        geometry = new THREE.SphereGeometry(body.radius, 16, 16);
+                        material = new THREE.MeshBasicMaterial({ 
+                            color: body.color,
+                            emissive: body.color,
+                            emissiveIntensity: body.radius > 3 ? 0.8 : 0.4 // Brighter for larger central stars
+                        });
+                        
+                        // Add glow effect for central massive stars
+                        if (body.radius > 3) {
+                            const glowGeometry = new THREE.SphereGeometry(body.radius * 1.5, 16, 16);
+                            const glowMaterial = new THREE.MeshBasicMaterial({
+                                color: body.color,
+                                transparent: true,
+                                opacity: 0.3,
+                                side: THREE.BackSide
+                            });
+                            const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
+                            body.glowMesh = glowMesh;
+                        }
+                        break;
+                    
+                    case BODY_TYPES.BLACK_HOLE:
+                        geometry = new THREE.SphereGeometry(body.radius, 16, 16);
+                        material = new THREE.MeshBasicMaterial({ color: 0x000000 });
+                        break;
+                    
+                    case BODY_TYPES.PLANET:
+                        geometry = new THREE.SphereGeometry(body.radius, 12, 12);
+                        material = new THREE.MeshLambertMaterial({ color: body.color });
+                        break;
+                    
+                    default:
+                        geometry = new THREE.SphereGeometry(body.radius, 8, 8);
+                        material = new THREE.MeshBasicMaterial({ color: body.color });
+                }
+                
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.userData = { body };
+                this.scene.add(mesh);
+                
+                // Add glow mesh to scene if it exists
+                if (body.glowMesh) {
+                    this.scene.add(body.glowMesh);
+                }
+                
+                return mesh;
+            }
+
+            updateBodies(bodies) {
+                const toRemove = [];
+                this.scene.traverse(child => {
+                    if (child.userData && child.userData.body) {
+                        const bodyExists = bodies.find(b => b.id === child.userData.body.id);
+                        if (!bodyExists) {
+                            toRemove.push(child);
+                        }
+                    }
+                });
+                toRemove.forEach(mesh => this.scene.remove(mesh));
+
+                bodies.forEach(body => {
+                    if (!body.mesh) {
+                        body.mesh = this.createBodyMesh(body);
+                    }
+                    
+                    body.mesh.position.set(body.position.x, body.position.y, body.position.z);
+                    
+                    // Update glow mesh position if it exists
+                    if (body.glowMesh) {
+                        body.glowMesh.position.set(body.position.x, body.position.y, body.position.z);
+                        // Gentle pulsing effect for central stars
+                        const time = Date.now() * 0.001;
+                        body.glowMesh.material.opacity = 0.2 + 0.1 * Math.sin(time * 2 + body.position.x);
+                    }
+                    
+                    if (body.selected) {
+                        body.mesh.material.emissiveIntensity = body.radius > 3 ? 1.0 : 0.8;
+                    } else {
+                        body.mesh.material.emissiveIntensity = body.radius > 3 ? 0.8 : 0.4;
+                    }
+                });
+            }
+
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            render() {
+                this.renderer.render(this.scene, this.camera);
+            }
+
+            dispose() {
+                this.renderer.dispose();
+            }
+        }
+
+        // Global variables
+        let physicsEngine;
+        let renderer;
+        let animationId;
+        let lastTime = 0;
+        let fpsCounter = 0;
+        let fpsUpdateTime = 0;
+        let isPaused = false;
+
+        // Initialize the universe
+        function initializeUniverse() {
+            try {
+                console.log('Starting universe initialization...');
+                
+                if (typeof THREE === 'undefined') {
+                    throw new Error('Three.js library not loaded');
+                }
+                
+                console.log('Three.js version:', THREE.REVISION);
+                
+                const container = document.getElementById('canvas-container');
+                if (!container) {
+                    throw new Error('Canvas container not found');
+                }
+                
+                console.log('Canvas container found:', container);
+                console.log('Initializing physics engine...');
+                
+                physicsEngine = new PhysicsEngine();
+                
+                console.log('Initializing renderer...');
+                renderer = new UniverseRenderer(container);
+                
+                console.log('Generating initial galaxy...');
+                generateGalaxy('spiral');
+                
+                console.log('Starting animation loop...');
+                startAnimation();
+                
+                // Hide loading screen and show controls
+                document.getElementById('loading-screen').style.display = 'none';
+                document.getElementById('control-panel').style.display = 'block';
+                document.getElementById('performance-meter').style.display = 'block';
+                
+                console.log('Universe initialized successfully!');
+                
+            } catch (error) {
+                console.error('Failed to initialize universe:', error);
+                document.getElementById('loading-screen').innerHTML = `
+                    <h2 style="color: #ff6b6b;">Initialization Error</h2>
+                    <p style="color: #ccc; margin-top: 20px;">${error.message}</p>
+                    <p style="color: #ccc; font-size: 14px; margin-top: 10px;">
+                        Please check the browser console for more details.
+                    </p>
+                    <button onclick="window.location.reload()" style="margin-top: 20px;">
+                        Retry
+                    </button>
+                `;
+            }
+        }
+
+        function startAnimation() {
+            const animate = (currentTime) => {
+                try {
+                    const deltaTime = currentTime - lastTime;
+                    lastTime = currentTime;
+
+                    if (physicsEngine) {
+                        physicsEngine.update(deltaTime);
+                        const bodyCount = physicsEngine.bodies.length;
+                        document.getElementById('bodyCount').textContent = bodyCount;
+                        document.getElementById('bodyCountDisplay').textContent = bodyCount;
+                    }
+
+                    if (renderer && physicsEngine) {
+                        renderer.updateBodies(physicsEngine.bodies);
+                        renderer.render();
+                    }
+
+                    fpsCounter++;
+                    if (currentTime - fpsUpdateTime >= 1000) {
+                        document.getElementById('fps').textContent = Math.round(fpsCounter);
+                        fpsCounter = 0;
+                        fpsUpdateTime = currentTime;
+                    }
+
+                    animationId = requestAnimationFrame(animate);
+                } catch (error) {
+                    console.error('Animation loop error:', error);
+                    animationId = requestAnimationFrame(animate);
+                }
+            };
+
+            lastTime = performance.now();
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function generateGalaxy(type) {
+            try {
+                if (!physicsEngine) {
+                    console.error('Physics engine not initialized');
+                    return;
+                }
+
+                console.log(`Generating ${type} galaxy...`);
+                physicsEngine.clearBodies();
+
+                let bodies = [];
+                switch (type) {
+                    case 'spiral':
+                        bodies = GalaxyGenerator.generateSpiral({
+                            armCount: 3,
+                            starCount: 200,
+                            maxRadius: 40,
+                            armTightness: 0.2
+                        });
+                        break;
+                    case 'elliptical':
+                        bodies = GalaxyGenerator.generateElliptical({
+                            starCount: 150,
+                            maxRadius: 30,
+                            ellipticity: 0.6
+                        });
+                        break;
+                    case 'irregular':
+                        bodies = GalaxyGenerator.generateIrregular({
+                            starCount: 100,
+                            maxRadius: 25,
+                            clusterCount: 4
+                        });
+                        break;
+                    default:
+                        console.warn(`Unknown galaxy type: ${type}, defaulting to spiral`);
+                        bodies = GalaxyGenerator.generateSpiral({
+                            armCount: 3,
+                            starCount: 200,
+                            maxRadius: 40,
+                            armTightness: 0.2
+                        });
+                }
+
+                console.log(`Generated ${bodies.length} bodies`);
+                bodies.forEach(body => physicsEngine.addBody(body));
+                console.log(`Galaxy generation complete`);
+            } catch (error) {
+                console.error('Failed to generate galaxy:', error);
+            }
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            if (physicsEngine) {
+                physicsEngine.paused = isPaused;
+            }
+            document.getElementById('pauseBtn').textContent = isPaused ? 'Play' : 'Pause';
+            document.getElementById('status').textContent = isPaused ? 'Paused' : 'Running';
+        }
+
+        function updateTimeScale(value) {
+            const timeScale = parseFloat(value);
+            if (physicsEngine) {
+                physicsEngine.timeScale = timeScale;
+            }
+            document.getElementById('timeScaleLabel').textContent = `Time Scale: ${timeScale.toFixed(1)}x`;
+        }
+
+        function updateGravity(value) {
+            const gravity = parseFloat(value);
+            if (physicsEngine) {
+                physicsEngine.gravityStrength = gravity;
+            }
+            document.getElementById('gravityLabel').textContent = `Gravity Strength: ${gravity.toFixed(1)}x`;
+        }
+
+        // Start when page loads
+        window.addEventListener('load', () => {
+            console.log('Page loaded, initializing universe...');
+            initializeUniverse();
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            if (renderer) {
+                renderer.dispose();
+            }
+        });
+    </script>
+    
+    <a href="../index.html" class="back-button">Back to Experiments</a>
+</body>
+</html>

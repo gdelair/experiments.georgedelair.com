@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vintage TV - Prelinger Archives</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="tv-container">
+        <div class="tv-frame">
+            <div class="tv-screen">
+                <!-- Video player container -->
+                <div id="player"></div>
+                
+                <!-- Static overlay -->
+                <div class="static-overlay"></div>
+                
+                <!-- Scanlines effect -->
+                <div class="scanlines"></div>
+                
+                <!-- TV power effects -->
+                <div class="tv-off"></div>
+                <div class="tv-on"></div>
+            </div>
+            
+            <div class="tv-controls">
+                <div class="tv-power-button" id="power-button">
+                    <div class="power-indicator"></div>
+                </div>
+                <div class="tv-channel-display">
+                    <span id="channel-number">--</span>
+                </div>
+                <div class="tv-knobs">
+                    <div class="knob-container">
+                        <div class="knob volume-knob"></div>
+                        <div class="volume-indicator">SOUND</div>
+                    </div>
+                    <div class="knob channel-knob"></div>
+                </div>
+            </div>
+        </div>
+        <div class="attribution">
+            Videos from <a href="https://archive.org" target="_blank">Archive.org</a>
+        </div>
+    </div>
+    
+    <div class="back-button">
+        <a href="../index.html">Back to Experiments</a>
+    </div>
+    
+    <!-- Load script after DOM is ready -->
+    <script src="script.js"></script>
+</body>
+</html>

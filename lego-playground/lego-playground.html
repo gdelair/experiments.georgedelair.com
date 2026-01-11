@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Lego Playground 3D</title>
+  <!-- Meta description and social sharing tags -->
+  <meta name="description" content="Lego Playground 3D is a pocket‑size building sandbox that lives right in your browser. Drop into a gridded baseplate, pick any brick size (1×1 up to 8×8), choose a color, and click to snap pieces into place.">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://georgedelair.com/experiments/lego-playground/lego-playground.html">
+  <meta property="og:title" content="LEGO Playground 3D">
+  <meta property="og:description" content="Lego Playground 3D is a pocket‑size building sandbox that lives right in your browser. Drop into a gridded baseplate, pick any brick size (1×1 up to 8×8), choose a color, and click to snap pieces into place. Bricks respect real‑world rules: they seat on studs, stack level‑by‑level, and rotate in perfect 90‑degree increments—so anything you design here could, in theory, be built with real bricks later.">
+  <meta property="og:image" content="https://echobasedev.b-cdn.net/lego-playground-3d/lego-playground-3d-min.png">
+  
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://georgedelair.com/experiments/lego-playground/lego-playground.html">
+  <meta property="twitter:title" content="LEGO Playground 3D">
+  <meta property="twitter:description" content="Lego Playground 3D is a pocket‑size building sandbox that lives right in your browser. Build with virtual LEGO bricks that follow real-world physics and connections.">
+  <meta property="twitter:image" content="https://echobasedev.b-cdn.net/lego-playground-3d/lego-playground-3d-min.png">
+  
+  <!-- Import map fixes bare "three" specifier for all modern browsers -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.164.0/build/three.module.js"
+      }
+    }
+  </script>
+  <style>
+    *{box-sizing:border-box;font-family:system-ui,sans-serif}
+    body{margin:0;display:flex;flex-direction:column;height:100vh;overflow:hidden;touch-action:none}
+    header{background:#ffcb05;color:#0d348f;padding:.5rem 1rem;font-weight:700;text-shadow:1px 1px 0 #fff}
+    #playground{flex:1;display:flex;overflow:hidden;position:relative}
+    #stage{flex:1}
+    #sidebar{width:240px;background:#f5f5f5;border-left:2px solid #ccc;padding:1rem;overflow-y:auto;transition:transform 0.3s ease}
+    label{display:block;margin:.5rem 0 .25rem;font-size:.9rem;font-weight:600}
+    input,select,button{width:100%;padding:.45rem .5rem;margin-bottom:.6rem;border:1px solid #ccc;border-radius:6px;font-size:.95rem}
+    button{background:#0d8f28;color:#fff;cursor:pointer;transition:background .2s}
+    button:hover{background:#0b6e1f}
+    footer{text-align:center;background:#eee;font-size:.8rem;padding:.4rem}
+    .presets{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+    .preset{width:28px;height:28px;border-radius:4px;cursor:pointer;border:2px solid #bbb}
+    .preset:hover{border-color:#999}
+    .preset.active{border-color:#333;box-shadow:0 0 0 2px rgba(0,0,0,0.2)}
+    
+    /* Mobile controls */
+    #mobileControls {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      display: none;
+      z-index: 100;
+    }
+    
+    .mobileBtn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.8);
+      border: 2px solid #0d348f;
+      margin: 0 8px;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    #toggleSidebar {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.8);
+      border: 2px solid #0d348f;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    /* Mobile responsive design */
+    @media (max-width: 768px) {
+      #playground {
+        flex-direction: column;
+      }
+      
+      #sidebar {
+        width: 100%;
+        border-left: none;
+        border-top: 2px solid #ccc;
+        max-height: 50vh;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 20;
+        transform: translateY(100%);
+      }
+      
+      #sidebar.open {
+        transform: translateY(0);
+      }
+      
+      #toggleSidebar, #mobileControls {
+        display: flex;
+      }
+      
+      header h1 {
+        font-size: 1.2rem;
+      }
+      
+      /* Make touch targets larger on mobile */
+      .preset {
+        width: 36px;
+        height: 36px;
+      }
+      
+      button, input, select {
+        padding: .6rem .5rem;
+        font-size: 1rem;
+      }
+    }
+    
+    /* Prevent text selection while dragging */
+    .no-select {
+      user-select: none;
+      -webkit-user-select: none;
+    }
+  </style>
+</head>
+<body class="no-select">
+<header><h1>🧱 Lego Playground 3D</h1></header>
+<section id="playground">
+  <div id="stage"></div>
+  <button id="toggleSidebar">🧩</button>
+  <div id="mobileControls">
+    <button class="mobileBtn" id="mobileRotate">🔄</button>
+    <button class="mobileBtn" id="mobileUndo">↩️</button>
+    <button class="mobileBtn" id="mobilePlace">➕</button>
+    <button class="mobileBtn" id="mobileUp">⬆️</button>
+    <button class="mobileBtn" id="mobileDown">⬇️</button>
+  </div>
+  <aside id="sidebar">
+    <h2>Brick</h2>
+    <label for="brickW">Width (studs)</label><select id="brickW"></select>
+    <label for="brickD">Depth (studs)</label><select id="brickD"></select>
+    <label for="brickH">Height</label>
+    <select id="brickH">
+      <option value="1">Standard (1)</option>
+      <option value="1/3">Plate (1/3)</option>
+    </select>
+    <label for="brickColor">Color</label>
+    <div class="presets" id="colorPresets"></div>
+    <input type="color" id="brickColor" value="#d32f2f">
+    <button id="rotateBtn">Rotate (R)</button>
+    <hr>
+    <button id="undoBtn">Undo (Delete)</button>
+    <button id="exportBtn">Export PNG</button>
+    <p style="font-size:.8rem">Click board to place • R = rotate • Del = undo • Drag/scroll = camera</p>
+    <hr>
+    <button id="backBtn" style="background-color: #666; margin-top: 20px;">Back to Experiments</button>
+  </aside>
+</section>
+<footer>Built with <a href="https://threejs.org/" target="_blank" rel="noopener">Three.js</a></footer>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'https://unpkg.com/three@0.164.0/examples/jsm/controls/OrbitControls.js';
+
+// ---------- CONSTANTS ----------
+// Accurate LEGO dimensions
+const STUD       = 8;      // 8mm per stud horizontally (real LEGO dimensions)
+const STUD_HEIGHT= 1.8;    // 1.8mm stud height
+const STUD_DIAM  = 4.8;    // 4.8mm stud diameter
+const BRICK_HEIGHT = 9.6;  // 9.6mm brick height (3× plate height)
+const PLATE_HEIGHT = 3.2;  // 3.2mm plate height
+const WALL_THICKNESS = 1.2;// 1.2mm wall thickness
+const BOARD_W    = 32;     // board width in studs
+const BOARD_D    = 32;     // board depth in studs
+const HOLLOW_DIAM = 6.4;   // underside hollow tube diameter
+const CORNER_SPACE = 2;    // empty space in corners of underside
+
+// Check for mobile
+const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
+// Color presets (official LEGO-like colors)
+const COLORS = [
+  { name: "Red", hex: "#C91A09" },
+  { name: "Blue", hex: "#0D69AB" },
+  { name: "Yellow", hex: "#F2CD37" },
+  { name: "Green", hex: "#00852B" },
+  { name: "Black", hex: "#05131D" },
+  { name: "White", hex: "#FFFFFF" },
+  { name: "Orange", hex: "#FE8A18" },
+  { name: "Brown", hex: "#543729" },
+  { name: "Light Gray", hex: "#A0A5A9" },
+  { name: "Dark Gray", hex: "#6C6E68" },
+  { name: "Tan", hex: "#E4CD9E" },
+  { name: "Purple", hex: "#81007B" },
+];
+
+// Scale down in Three.js units (1 THREE unit = 10mm)
+const SCALE = 0.1;
+
+// ---------- DOM HANDLES ----------
+const stageEl    = document.getElementById('stage');
+const wSel       = document.getElementById('brickW');
+const dSel       = document.getElementById('brickD');
+const hSel       = document.getElementById('brickH');
+const colorInp   = document.getElementById('brickColor');
+const presetsCont= document.getElementById('colorPresets');
+
+// Populate dropdowns
+for(let i=1;i<=8;i++){ 
+  wSel.add(new Option(i,i)); 
+  dSel.add(new Option(i,i)); 
+}
+wSel.value=2; dSel.value=4;
+
+// Populate color presets
+COLORS.forEach((color, i) => {
+  const btn = document.createElement('div');
+  btn.className = 'preset';
+  btn.title = color.name;
+  btn.style.backgroundColor = color.hex;
+  btn.dataset.color = color.hex;
+  if (i === 0) btn.classList.add('active');
+  btn.addEventListener('click', (e) => {
+    document.querySelectorAll('.preset').forEach(el => el.classList.remove('active'));
+    btn.classList.add('active');
+    colorInp.value = color.hex;
+  });
+  presetsCont.appendChild(btn);
+});
+colorInp.value = COLORS[0].hex;
+
+// ---------- THREE BASICS ----------
+const scene   = new THREE.Scene();
+scene.background = new THREE.Color(0xc9e9ff);
+const camera  = new THREE.PerspectiveCamera(45, stageEl.clientWidth/stageEl.clientHeight, 0.1, 1000);
+camera.position.set(10,15,22);
+
+// Initialize renderer with error handling
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(stageEl.clientWidth, stageEl.clientHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  stageEl.appendChild(renderer.domElement);
+} catch (error) {
+  console.error('WebGL not supported:', error);
+  stageEl.innerHTML = '<div style="padding: 20px; text-align: center; color: red;">WebGL is not supported on this device. Please try a different browser or device.</div>';
+  throw error;
+}
+
+// Handle WebGL context loss
+renderer.domElement.addEventListener('webglcontextlost', (event) => {
+  event.preventDefault();
+  console.warn('WebGL context lost');
+}, false);
+
+renderer.domElement.addEventListener('webglcontextrestored', () => {
+  console.log('WebGL context restored');
+  // Reinitialize if needed
+}, false);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.1;
+controls.rotateSpeed = 0.7;
+controls.panSpeed = 0.7;
+controls.zoomSpeed = 1.0;
+controls.touches = {
+  ONE: THREE.TOUCH.ROTATE,
+  TWO: THREE.TOUCH.DOLLY_PAN
+};
+
+// Enhanced lighting for better visual appearance
+scene.add(new THREE.HemisphereLight(0xffffff, 0x404040, 0.6));
+const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+dir.position.set(5, 10, 7.5);
+dir.castShadow = true;
+dir.shadow.mapSize.width = 1024;
+dir.shadow.mapSize.height = 1024;
+dir.shadow.camera.near = 0.5;
+dir.shadow.camera.far = 50;
+dir.shadow.camera.left = -15;
+dir.shadow.camera.right = 15;
+dir.shadow.camera.top = 15;
+dir.shadow.camera.bottom = -15;
+scene.add(dir);
+
+// Ambient for fill light
+scene.add(new THREE.AmbientLight(0x404040, 0.6));
+
+// ---------- BOARD ----------
+// Create a baseplate with accurate LEGO dimensions
+const baseplateSize = {
+  width: BOARD_W * STUD * SCALE,
+  depth: BOARD_D * STUD * SCALE,
+  height: PLATE_HEIGHT * SCALE
+};
+
+const baseplate = new THREE.Group();
+scene.add(baseplate);
+
+// Base plate body
+const baseMat = new THREE.MeshStandardMaterial({
+  color: 0x4db6ac,
+  roughness: 0.3,
+  metalness: 0.1
+});
+const baseGeo = new THREE.BoxGeometry(
+  baseplateSize.width, 
+  baseplateSize.height, 
+  baseplateSize.depth
+);
+const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+baseMesh.position.y = baseplateSize.height / 2;
+baseMesh.receiveShadow = true;
+baseplate.add(baseMesh);
+
+// Create studs on baseplate
+const studGeometry = new THREE.CylinderGeometry(
+  (STUD_DIAM/2) * SCALE,
+  (STUD_DIAM/2) * SCALE,
+  STUD_HEIGHT * SCALE,
+  16
+);
+const studMaterial = new THREE.MeshStandardMaterial({
+  color: 0x4db6ac,
+  roughness: 0.3,
+  metalness: 0.1
+});
+
+for(let x=0; x<BOARD_W; x++) {
+  for(let z=0; z<BOARD_D; z++) {
+    const stud = new THREE.Mesh(studGeometry, studMaterial);
+    stud.position.set(
+      (x - BOARD_W/2 + 0.5) * STUD * SCALE,
+      baseplateSize.height + (STUD_HEIGHT * SCALE) / 2,
+      (z - BOARD_D/2 + 0.5) * STUD * SCALE
+    );
+    stud.castShadow = true;
+    stud.receiveShadow = true;
+    baseplate.add(stud);
+  }
+}
+
+// Invisible plane for ray casting
+const plane = new THREE.Mesh(
+  new THREE.PlaneGeometry(BOARD_W * STUD * SCALE, BOARD_D * STUD * SCALE),
+  new THREE.MeshBasicMaterial({visible: false})
+);
+plane.rotateX(-Math.PI/2);
+plane.position.y = baseplateSize.height; // Align with top of baseplate
+scene.add(plane);
+
+// Height grid (levels) - Store the height in plate units
+const grid = Array.from({length: BOARD_W}, () => Array(BOARD_D).fill(0));
+
+// ---------- HELPERS ----------
+const hexToInt = h => parseInt(h.slice(1), 16);
+const shade = (col, delta) => {
+  let r=(col>>16)&255, g=(col>>8)&255, b=col&255;
+  r=Math.min(255,Math.max(0,r+delta));
+  g=Math.min(255,Math.max(0,g+delta));
+  b=Math.min(255,Math.max(0,b+delta));
+  return (r<<16)|(g<<8)|b;
+};
+
+// Creates a tube mesh with inner and outer cylinders
+function createTube(innerRadius, outerRadius, height, segments = 16) {
+  const group = new THREE.Group();
+  
+  // Inner cylinder (hollow part)
+  const innerGeo = new THREE.CylinderGeometry(
+    innerRadius, innerRadius, height, segments, 1, true
+  );
+  const innerMesh = new THREE.Mesh(innerGeo, new THREE.MeshStandardMaterial({
+    side: THREE.DoubleSide,
+    visible: false // Make invisible, we only need the outer cylinder
+  }));
+  
+  // Outer cylinder
+  const outerGeo = new THREE.CylinderGeometry(
+    outerRadius, outerRadius, height, segments, 1, true
+  );
+  const outerMesh = new THREE.Mesh(outerGeo);
+  
+  group.add(innerMesh, outerMesh);
+  
+  // Use CSG to create the tube by subtracting the inner cylinder from the outer
+  return group;
+}
+
+function getBrickHeight() {
+  // Return height in plate units (3 plates = 1 brick)
+  return hSel.value === "1" ? 3 : 1;
+}
+
+function makeBrick(w, d, hex) {
+  const color = hexToInt(hex);
+  const heightUnits = getBrickHeight();
+  const brickHeightMM = heightUnits * PLATE_HEIGHT;
+  const brickHeight = brickHeightMM * SCALE;
+  
+  const grp = new THREE.Group();
+  
+  // Brick body
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: color,
+    roughness: 0.3,
+    metalness: 0.1
+  });
+  
+  // Main brick body
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(
+      w * STUD * SCALE,
+      brickHeight,
+      d * STUD * SCALE
+    ),
+    bodyMat
+  );
+  
+  body.position.y = brickHeight / 2;
+  body.castShadow = true;
+  body.receiveShadow = true;
+  grp.add(body);
+  
+  // Studs on top
+  const studMat = new THREE.MeshStandardMaterial({
+    color: shade(color, -20),
+    roughness: 0.4,
+    metalness: 0.1
+  });
+  
+  const studRadius = (STUD_DIAM/2) * SCALE;
+  const studHeight = STUD_HEIGHT * SCALE;
+  const studGeo = new THREE.CylinderGeometry(
+    studRadius, studRadius, studHeight, 16
+  );
+  
+  for(let i=0; i<w; i++) {
+    for(let j=0; j<d; j++) {
+      const stud = new THREE.Mesh(studGeo, studMat);
+      stud.position.set(
+        (i - w/2 + 0.5) * STUD * SCALE,
+        brickHeight + studHeight/2,
+        (j - d/2 + 0.5) * STUD * SCALE
+      );
+      stud.castShadow = true;
+      stud.receiveShadow = true;
+      grp.add(stud);
+    }
+  }
+  
+  // Create underside details (hollow structure)
+  if (w > 1 || d > 1) { // Only for bricks larger than 1x1
+    const innerWallMat = new THREE.MeshStandardMaterial({
+      color: shade(color, -40),
+      roughness: 0.4,
+      side: THREE.DoubleSide
+    });
+    
+    // Create hollow underside
+    const wallThickness = WALL_THICKNESS * SCALE;
+    const innerWidth = w * STUD * SCALE - wallThickness * 2;
+    const innerDepth = d * STUD * SCALE - wallThickness * 2;
+    const innerHeight = brickHeight - wallThickness;
+    
+    // Inner cavity
+    if (innerWidth > 0 && innerDepth > 0 && innerHeight > 0) {
+      const cavity = new THREE.Mesh(
+        new THREE.BoxGeometry(innerWidth, innerHeight, innerDepth),
+        innerWallMat
+      );
+      cavity.position.y = brickHeight / 2 + wallThickness / 2;
+      grp.add(cavity);
+    }
+    
+    // Add tubes for stud connections
+    const tubeRadius = (HOLLOW_DIAM/2) * SCALE;
+    const tubeMat = new THREE.MeshStandardMaterial({
+      color: shade(color, -30),
+      roughness: 0.4,
+      side: THREE.DoubleSide
+    });
+    
+    // Create tubes - position depends on brick size
+    if (w > 1 && d > 1) {
+      // Create tube pattern based on brick size
+      for(let i=0; i<w-1; i++) {
+        for(let j=0; j<d-1; j++) {
+          // Check if this is a corner or edge position
+          const isCorner = (i === 0 && j === 0) || 
+                          (i === 0 && j === d-2) || 
+                          (i === w-2 && j === 0) || 
+                          (i === w-2 && j === d-2);
+                          
+          // Skip corners on some larger bricks for accuracy
+          if (isCorner && (w > 2 && d > 2)) continue;
+          
+          const tubeX = (i - w/2 + 1) * STUD * SCALE;
+          const tubeZ = (j - d/2 + 1) * STUD * SCALE;
+          
+          const tube = new THREE.Mesh(
+            new THREE.CylinderGeometry(
+              tubeRadius, tubeRadius, brickHeight - wallThickness*0.8, 16, 1, true
+            ),
+            tubeMat
+          );
+          
+          tube.position.set(
+            tubeX, 
+            (brickHeight - wallThickness*0.8) / 2, 
+            tubeZ
+          );
+          tube.castShadow = true;
+          tube.receiveShadow = true;
+          grp.add(tube);
+        }
+      }
+    } else if (w > 1) {
+      // For 1xN bricks, place tubes along length
+      for(let i=0; i<w-1; i++) {
+        const tube = new THREE.Mesh(
+          new THREE.CylinderGeometry(
+            tubeRadius, tubeRadius, brickHeight - wallThickness*0.8, 16, 1, true
+          ),
+          tubeMat
+        );
+        tube.position.set(
+          (i - w/2 + 1) * STUD * SCALE, 
+          (brickHeight - wallThickness*0.8) / 2, 
+          0
+        );
+        tube.castShadow = true;
+        tube.receiveShadow = true;
+        grp.add(tube);
+      }
+    } else if (d > 1) {
+      // For Nx1 bricks, place tubes along width
+      for(let j=0; j<d-1; j++) {
+        const tube = new THREE.Mesh(
+          new THREE.CylinderGeometry(
+            tubeRadius, tubeRadius, brickHeight - wallThickness*0.8, 16, 1, true
+          ),
+          tubeMat
+        );
+        tube.position.set(
+          0,
+          (brickHeight - wallThickness*0.8) / 2, 
+          (j - d/2 + 1) * STUD * SCALE
+        );
+        tube.castShadow = true;
+        tube.receiveShadow = true;
+        grp.add(tube);
+      }
+    }
+  }
+  
+  return grp;
+}
+
+// ---------- GHOST PREVIEW ----------
+let rotation = 0; // 0/90 deg
+let ghost;
+let lastHit = null;
+
+function buildGhost() {
+  if(ghost) {
+    scene.remove(ghost);
+    // Dispose of old ghost materials to prevent memory leaks
+    ghost.traverse(child => {
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) {
+        if (Array.isArray(child.material)) {
+          child.material.forEach(material => material.dispose());
+        } else {
+          child.material.dispose();
+        }
+      }
+    });
+  }
+  
+  ghost = makeBrick(+wSel.value, +dSel.value, '#66ff66');
+  ghost.traverse(m => {
+    if(m.isMesh) {
+      m.material = m.material.clone();
+      m.material.transparent = true;
+      m.material.opacity = 0.4;
+      m.material.depthWrite = false;
+    }
+  });
+  scene.add(ghost);
+  if(lastHit) updateGhost(lastHit);
+}
+
+const stack = [];
+
+// Add a structure to track brick volumes for collision detection
+const brickSpaces = [];
+
+function updateGhost(hit) {
+  if(!hit) return;
+  lastHit = hit;
+  
+  const w = +wSel.value, d = +dSel.value;
+  // Swap width/depth based on rotation (properly handle all 4 rotations)
+  const wx = rotation%180===0 ? w : d;
+  const dz = rotation%180===0 ? d : w;
+  
+  // Calculate grid position
+  const ix = Math.floor((hit.point.x / SCALE + (BOARD_W * STUD) / 2) / STUD);
+  const iz = Math.floor((hit.point.z / SCALE + (BOARD_D * STUD) / 2) / STUD);
+  
+  const baseX = ix - Math.floor(wx/2);
+  const baseZ = iz - Math.floor(dz/2);
+  
+  // Check if brick would go outside board
+  if(baseX < 0 || baseZ < 0 || baseX + wx > BOARD_W || baseZ + dz > BOARD_D) {
+    ghost.visible = false;
+    return;
+  }
+
+  // Brick height info
+  const heightUnits = getBrickHeight();
+  const brickHeightMM = heightUnits * PLATE_HEIGHT; 
+  const brickHeight = brickHeightMM * SCALE;
+  
+  // Find all stud heights in the footprint
+  const studHeights = [];
+  for(let x=0; x<wx; x++) {
+    for(let z=0; z<dz; z++) {
+      studHeights.push(grid[baseX+x][baseZ+z]);
+    }
+  }
+  
+  // Get the most common height to connect to (prioritize connections)
+  const heightCounts = {};
+  studHeights.forEach(h => {
+    heightCounts[h] = (heightCounts[h] || 0) + 1;
+  });
+  
+  // Find the most common height (if tie, take the higher one)
+  let level = 0;
+  let maxCount = 0;
+  
+  Object.entries(heightCounts).forEach(([height, count]) => {
+    if (count > maxCount || (count === maxCount && +height > level)) {
+      level = +height;
+      maxCount = count;
+    }
+  });
+  
+  // If no connections are found, use the height from the ray intersection
+  if (maxCount === 0 || heightCounts[0] === studHeights.length) {
+    // Calculate height based on cursor position
+    const intersectHeight = Math.max(0, Math.floor((hit.point.y - baseplateSize.height) / (PLATE_HEIGHT * SCALE)));
+    level = intersectHeight;
+  }
+  
+  // Position based on the selected height
+  ghost.position.set(
+    (baseX + wx/2 - BOARD_W/2) * STUD * SCALE,
+    baseplateSize.height + (level * PLATE_HEIGHT * SCALE),
+    (baseZ + dz/2 - BOARD_D/2) * STUD * SCALE
+  );
+  
+  // Apply rotation in radians
+  const rotationRad = THREE.MathUtils.degToRad(rotation);
+  ghost.rotation.y = rotationRad;
+  ghost.visible = true;
+  
+  // Calculate which studs actually connect
+  const connectingStuds = [];
+  for(let x=0; x<wx; x++) {
+    for(let z=0; z<dz; z++) {
+      connectingStuds.push(grid[baseX+x][baseZ+z] === level);
+    }
+  }
+  
+  // Check for collision with existing bricks
+  const newBrickSpace = {
+    minX: (baseX - BOARD_W/2) * STUD * SCALE,
+    maxX: (baseX + wx - BOARD_W/2) * STUD * SCALE,
+    minY: baseplateSize.height + (level * PLATE_HEIGHT * SCALE),
+    maxY: baseplateSize.height + ((level + heightUnits) * PLATE_HEIGHT * SCALE) - 0.0001, // Small epsilon to allow exact stacking
+    minZ: (baseZ - BOARD_D/2) * STUD * SCALE,
+    maxZ: (baseZ + dz - BOARD_D/2) * STUD * SCALE,
+  };
+  
+  let hasCollision = false;
+  for (const space of brickSpaces) {
+    // Check if boxes overlap in all dimensions
+    if (!(newBrickSpace.maxX <= space.minX || newBrickSpace.minX >= space.maxX ||
+          newBrickSpace.maxY <= space.minY || newBrickSpace.minY >= space.maxY ||
+          newBrickSpace.maxZ <= space.minZ || newBrickSpace.minZ >= space.maxZ)) {
+      hasCollision = true;
+      break;
+    }
+  }
+  
+  // Valid if no collision - no longer requiring stud connections
+  const hasConnection = connectingStuds.some(connected => connected);
+  const valid = !hasCollision;
+  
+  // Visualize connecting/non-connecting studs
+  ghost.traverse(c => {
+    if(c.isMesh) {
+      // Ghost body color indicates collision state
+      if (c.geometry.type === 'BoxGeometry') {
+        c.material.color.set(hasCollision ? '#ff0000' : '#66ff66');
+        c.material.opacity = hasCollision ? 0.4 : 0.2;
+      } else {
+        c.material.opacity = valid ? 0.6 : 0.2;
+      }
+    }
+  });
+  
+  // Color each stud based on connection status
+  const studs = ghost.children.filter(child => 
+    child.geometry && child.geometry.type === 'CylinderGeometry' && 
+    child.position.y > brickHeight
+  );
+  
+  if (studs.length === connectingStuds.length) {
+    studs.forEach((stud, index) => {
+      if (stud.material) {
+        const color = hasCollision ? '#ff0000' : (connectingStuds[index] ? '#66ff66' : '#ff6666');
+        stud.material.color.set(color);
+        stud.material.opacity = connectingStuds[index] && !hasCollision ? 0.8 : 0.4;
+      }
+    });
+  }
+  
+  ghost.userData = {
+    valid, 
+    baseX, 
+    baseZ, 
+    wx, 
+    dz, 
+    level, 
+    connectingStuds,
+    brickSpace: newBrickSpace,
+    hasCollision,
+    hasConnection,
+    rotation: rotation, // Store the current rotation value
+    rotationRad: rotationRad // Store in radians too
+  };
+}
+
+// Handle changes to brick settings
+wSel.addEventListener('change', buildGhost);
+dSel.addEventListener('change', buildGhost);
+hSel.addEventListener('change', buildGhost);
+colorInp.addEventListener('change', () => {
+  document.querySelectorAll('.preset').forEach(el => el.classList.remove('active'));
+});
+
+// Rotation button
+document.getElementById('rotateBtn').addEventListener('click', () => {
+  rotation = (rotation + 90) % 360;
+  if(lastHit) updateGhost(lastHit);
+});
+
+// Initial ghost build
+buildGhost();
+
+// ---------- PLACE & UNDO ----------
+function placeBrick() {
+  if(!ghost.userData?.valid) return;
+  
+  const {baseX, baseZ, wx, dz, level, connectingStuds, brickSpace, rotation: brickRotation} = ghost.userData;
+  
+  // Create brick with original dimensions (before rotation)
+  const w = +wSel.value, d = +dSel.value;
+  const brick = makeBrick(w, d, colorInp.value);
+  
+  // Apply position and rotation from ghost
+  brick.position.copy(ghost.position);
+  brick.rotation.y = ghost.rotation.y; // This should now match the ghost rotation
+  
+  scene.add(brick);
+  
+  const heightUnits = getBrickHeight();
+  
+  // Store brick and its occupied space
+  brickSpaces.push(brickSpace);
+  stack.push({
+    brick, 
+    baseX, 
+    baseZ, 
+    wx, 
+    dz, 
+    heightUnits, 
+    level,
+    brickSpaceIndex: brickSpaces.length - 1,
+    rotation: brickRotation // Store the rotation
+  });
+  
+  // Update grid with new height - only where the brick is
+  for(let x=0; x<wx; x++) {
+    for(let z=0; z<dz; z++) {
+      // Add brick height to existing height
+      grid[baseX+x][baseZ+z] = level + heightUnits;
+    }
+  }
+  
+  if(lastHit) updateGhost(lastHit);
+}
+
+function undo() {
+  const last = stack.pop();
+  if(!last) return;
+  
+  scene.remove(last.brick);
+  
+  // Properly dispose of geometries and materials to prevent memory leaks
+  last.brick.traverse((child) => {
+    if (child.geometry) {
+      child.geometry.dispose();
+    }
+    if (child.material) {
+      if (Array.isArray(child.material)) {
+        child.material.forEach(material => material.dispose());
+      } else {
+        child.material.dispose();
+      }
+    }
+  });
+  
+  // Remove the brick space from collision tracking
+  brickSpaces.splice(last.brickSpaceIndex, 1);
+  
+  // Update indices for all bricks placed after this one
+  for (let i = last.brickSpaceIndex; i < stack.length; i++) {
+    stack[i].brickSpaceIndex--;
+  }
+  
+  // Restore previous grid heights
+  for(let x=0; x<last.wx; x++) {
+    for(let z=0; z<last.dz; z++) {
+      grid[last.baseX+x][last.baseZ+z] = last.level;
+    }
+  }
+  
+  if(lastHit) updateGhost(lastHit);
+}
+
+document.getElementById('undoBtn').addEventListener('click', undo);
+
+// ---------- EXPORT ----------
+document.getElementById('exportBtn').addEventListener('click', () => {
+  renderer.render(scene, camera);
+  const url = renderer.domElement.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'lego_build.png';
+  a.click();
+});
+
+// ---------- INTERACTION & EVENTS ----------
+const ray = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+// Track mouse interaction to prevent brick placement during camera rotation
+let mouseDown = false;
+let mouseMoved = false;
+let mouseDownTime = 0;
+
+function updateRay(e) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  ray.setFromCamera(mouse, camera);
+  const hit = ray.intersectObject(plane)[0];
+  if(hit) updateGhost(hit);
+}
+
+// Track mouse state to distinguish clicks from drags
+renderer.domElement.addEventListener('mousedown', (e) => {
+  mouseDown = true;
+  mouseMoved = false;
+  mouseDownTime = Date.now();
+});
+
+renderer.domElement.addEventListener('mousemove', (e) => {
+  updateRay(e);
+  if (mouseDown) {
+    mouseMoved = true;
+  }
+});
+
+renderer.domElement.addEventListener('mouseup', (e) => {
+  const clickDuration = Date.now() - mouseDownTime;
+  
+  // Only place brick if it was a quick click (not a drag) and not on sidebar
+  if (!mouseMoved && clickDuration < 300 && !e.target.closest('#sidebar')) {
+    placeBrick();
+  }
+  
+  mouseDown = false;
+  mouseMoved = false;
+});
+
+// Keep pointermove for other pointer types (touch, pen)
+window.addEventListener('pointermove', (e) => {
+  if (e.pointerType !== 'mouse') {
+    updateRay(e);
+  }
+});
+
+window.addEventListener('keydown', e => {
+  if(e.key === 'r' || e.key === 'R') {
+    rotation = (rotation + 90) % 360;
+    if(lastHit) updateGhost(lastHit);
+  }
+  if(e.key === 'Delete' || e.key === 'Backspace') undo();
+  
+  // Up/down arrow keys adjust brick height
+  if(e.key === 'ArrowUp' && ghost) {
+    const level = ghost.userData.level + 1;
+    const heightUnits = getBrickHeight();
+    ghost.position.y = baseplateSize.height + (level * PLATE_HEIGHT * SCALE);
+    ghost.userData.level = level;
+    
+    // Update brick space for collision detection
+    ghost.userData.brickSpace.minY = baseplateSize.height + (level * PLATE_HEIGHT * SCALE);
+    ghost.userData.brickSpace.maxY = baseplateSize.height + ((level + heightUnits) * PLATE_HEIGHT * SCALE) - 0.0001;
+    
+    // Recalculate collision
+    let hasCollision = false;
+    for (const space of brickSpaces) {
+      const newSpace = ghost.userData.brickSpace;
+      if (!(newSpace.maxX <= space.minX || newSpace.minX >= space.maxX ||
+            newSpace.maxY <= space.minY || newSpace.minY >= space.maxY ||
+            newSpace.maxZ <= space.minZ || newSpace.minZ >= space.maxZ)) {
+        hasCollision = true;
+        break;
+      }
+    }
+    
+    ghost.userData.hasCollision = hasCollision;
+    ghost.userData.valid = !hasCollision;
+    
+    // Update stud connections
+    const {baseX, baseZ, wx, dz} = ghost.userData;
+    const connectingStuds = [];
+    for(let x=0; x<wx; x++) {
+      for(let z=0; z<dz; z++) {
+        connectingStuds.push(grid[baseX+x][baseZ+z] === level);
+      }
+    }
+    ghost.userData.connectingStuds = connectingStuds;
+    ghost.userData.hasConnection = connectingStuds.some(connected => connected);
+    
+    // Update visuals
+    updateGhostVisuals();
+  }
+  
+  if(e.key === 'ArrowDown' && ghost && ghost.userData.level > 0) {
+    const level = ghost.userData.level - 1;
+    const heightUnits = getBrickHeight();
+    ghost.position.y = baseplateSize.height + (level * PLATE_HEIGHT * SCALE);
+    ghost.userData.level = level;
+    
+    // Update brick space for collision detection
+    ghost.userData.brickSpace.minY = baseplateSize.height + (level * PLATE_HEIGHT * SCALE);
+    ghost.userData.brickSpace.maxY = baseplateSize.height + ((level + heightUnits) * PLATE_HEIGHT * SCALE) - 0.0001;
+    
+    // Recalculate collision
+    let hasCollision = false;
+    for (const space of brickSpaces) {
+      const newSpace = ghost.userData.brickSpace;
+      if (!(newSpace.maxX <= space.minX || newSpace.minX >= space.maxX ||
+            newSpace.maxY <= space.minY || newSpace.minY >= space.maxY ||
+            newSpace.maxZ <= space.minZ || newSpace.minZ >= space.maxZ)) {
+        hasCollision = true;
+        break;
+      }
+    }
+    
+    ghost.userData.hasCollision = hasCollision;
+    ghost.userData.valid = !hasCollision;
+    
+    // Update stud connections
+    const {baseX, baseZ, wx, dz} = ghost.userData;
+    const connectingStuds = [];
+    for(let x=0; x<wx; x++) {
+      for(let z=0; z<dz; z++) {
+        connectingStuds.push(grid[baseX+x][baseZ+z] === level);
+      }
+    }
+    ghost.userData.connectingStuds = connectingStuds;
+    ghost.userData.hasConnection = connectingStuds.some(connected => connected);
+    
+    // Update visuals
+    updateGhostVisuals();
+  }
+});
+
+// Helper function to update ghost visuals
+function updateGhostVisuals() {
+  if (!ghost) return;
+  
+  const {hasCollision, connectingStuds} = ghost.userData;
+  
+  // Update body color based on collision
+  ghost.traverse(c => {
+    if(c.isMesh) {
+      if (c.geometry.type === 'BoxGeometry') {
+        c.material.color.set(hasCollision ? '#ff0000' : '#66ff66');
+        c.material.opacity = hasCollision ? 0.4 : 0.2;
+      } else {
+        c.material.opacity = !hasCollision ? 0.6 : 0.2;
+      }
+    }
+  });
+  
+  // Update stud colors
+  const heightUnits = getBrickHeight();
+  const brickHeightMM = heightUnits * PLATE_HEIGHT;
+  const brickHeight = brickHeightMM * SCALE;
+  
+  const studs = ghost.children.filter(child => 
+    child.geometry && child.geometry.type === 'CylinderGeometry' && 
+    child.position.y > brickHeight
+  );
+  
+  if (studs.length === connectingStuds.length) {
+    studs.forEach((stud, index) => {
+      if (stud.material) {
+        const color = hasCollision ? '#ff0000' : (connectingStuds[index] ? '#66ff66' : '#ff6666');
+        stud.material.color.set(color);
+        stud.material.opacity = connectingStuds[index] && !hasCollision ? 0.8 : 0.4;
+      }
+    });
+  }
+}
+
+// ---------- RESIZE ----------
+window.addEventListener('resize', () => {
+  camera.aspect = stageEl.clientWidth / stageEl.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(stageEl.clientWidth, stageEl.clientHeight);
+});
+
+// ---------- ANIMATION LOOP ----------
+function animate() {
+  requestAnimationFrame(animate);
+  
+  try {
+    controls.update();
+    renderer.render(scene, camera);
+  } catch (error) {
+    console.error('Render error:', error);
+    // Stop animation loop on critical errors
+    return;
+  }
+}
+
+// Start animation loop only if renderer initialized successfully
+if (renderer) {
+  animate();
+}
+
+// Add event listener for the back button (place right after the other button listeners)
+document.getElementById('backBtn').addEventListener('click', () => {
+  window.location.href = '../index.html';
+});
+
+// ---------- MOBILE CONTROLS ----------
+// Toggle sidebar visibility on mobile
+const sidebar = document.getElementById('sidebar');
+const toggleBtn = document.getElementById('toggleSidebar');
+
+toggleBtn.addEventListener('click', () => {
+  sidebar.classList.toggle('open');
+});
+
+// Handle mobile control buttons
+document.getElementById('mobileRotate').addEventListener('click', () => {
+  rotation = (rotation + 90) % 360;
+  if(lastHit) updateGhost(lastHit);
+});
+
+document.getElementById('mobileUndo').addEventListener('click', undo);
+
+document.getElementById('mobilePlace').addEventListener('click', () => {
+  if(ghost && ghost.visible && ghost.userData.valid) {
+    placeBrick();
+  }
+});
+
+document.getElementById('mobileUp').addEventListener('click', () => {
+  if (ghost) {
+    const level = ghost.userData.level + 1;
+    const heightUnits = getBrickHeight();
+    ghost.position.y = baseplateSize.height + (level * PLATE_HEIGHT * SCALE);
+    ghost.userData.level = level;
+    
+    // Update brick space for collision detection
+    ghost.userData.brickSpace.minY = baseplateSize.height + (level * PLATE_HEIGHT * SCALE);
+    ghost.userData.brickSpace.maxY = baseplateSize.height + ((level + heightUnits) * PLATE_HEIGHT * SCALE) - 0.0001;
+    
+    // Recalculate collision
+    let hasCollision = false;
+    for (const space of brickSpaces) {
+      const newSpace = ghost.userData.brickSpace;
+      if (!(newSpace.maxX <= space.minX || newSpace.minX >= space.maxX ||
+            newSpace.maxY <= space.minY || newSpace.minY >= space.maxY ||
+            newSpace.maxZ <= space.minZ || newSpace.minZ >= space.maxZ)) {
+        hasCollision = true;
+        break;
+      }
+    }
+    
+    ghost.userData.hasCollision = hasCollision;
+    ghost.userData.valid = !hasCollision;
+    
+    // Update connections
+    const {baseX, baseZ, wx, dz} = ghost.userData;
+    const connectingStuds = [];
+    for(let x=0; x<wx; x++) {
+      for(let z=0; z<dz; z++) {
+        connectingStuds.push(grid[baseX+x][baseZ+z] === level);
+      }
+    }
+    ghost.userData.connectingStuds = connectingStuds;
+    ghost.userData.hasConnection = connectingStuds.some(connected => connected);
+    updateGhostVisuals();
+  }
+});
+
+document.getElementById('mobileDown').addEventListener('click', () => {
+  if (ghost && ghost.userData.level > 0) {
+    const level = ghost.userData.level - 1;
+    const heightUnits = getBrickHeight();
+    ghost.position.y = baseplateSize.height + (level * PLATE_HEIGHT * SCALE);
+    ghost.userData.level = level;
+    
+    // Update brick space
+    ghost.userData.brickSpace.minY = baseplateSize.height + (level * PLATE_HEIGHT * SCALE);
+    ghost.userData.brickSpace.maxY = baseplateSize.height + ((level + heightUnits) * PLATE_HEIGHT * SCALE) - 0.0001;
+    
+    // Recalculate collision
+    let hasCollision = false;
+    for (const space of brickSpaces) {
+      const newSpace = ghost.userData.brickSpace;
+      if (!(newSpace.maxX <= space.minX || newSpace.minX >= space.maxX ||
+            newSpace.maxY <= space.minY || newSpace.minY >= space.maxY ||
+            newSpace.maxZ <= space.minZ || newSpace.minZ >= space.maxZ)) {
+        hasCollision = true;
+        break;
+      }
+    }
+    
+    ghost.userData.hasCollision = hasCollision;
+    ghost.userData.valid = !hasCollision;
+    
+    // Update connections
+    const {baseX, baseZ, wx, dz} = ghost.userData;
+    const connectingStuds = [];
+    for(let x=0; x<wx; x++) {
+      for(let z=0; z<dz; z++) {
+        connectingStuds.push(grid[baseX+x][baseZ+z] === level);
+      }
+    }
+    ghost.userData.connectingStuds = connectingStuds;
+    ghost.userData.hasConnection = connectingStuds.some(connected => connected);
+    updateGhostVisuals();
+  }
+});
+
+// Enhanced mobile touch handling with better conflict resolution
+let touchStartTime = 0;
+let touchMoved = false;
+let touchStartPos = { x: 0, y: 0 };
+
+function onTouchStart(event) {
+  // Don't interfere with multi-touch gestures (OrbitControls needs these)
+  if (event.touches.length > 1) {
+    return;
+  }
+  
+  // Don't prevent default - let OrbitControls handle rotation
+  const touch = event.touches[0];
+  const rect = renderer.domElement.getBoundingClientRect();
+  
+  touchStartTime = Date.now();
+  touchMoved = false;
+  touchStartPos.x = touch.clientX;
+  touchStartPos.y = touch.clientY;
+  
+  mouse.x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
+  
+  ray.setFromCamera(mouse, camera);
+  const hit = ray.intersectObject(plane)[0];
+  if (hit) {
+    lastHit = hit;
+    updateGhost(hit);
+  }
+}
+
+function onTouchMove(event) {
+  if (event.touches.length > 1) {
+    return;
+  }
+  
+  const touch = event.touches[0];
+  const moveDistance = Math.abs(touch.clientX - touchStartPos.x) + Math.abs(touch.clientY - touchStartPos.y);
+  
+  // Mark as moved if touch moved more than 10 pixels
+  if (moveDistance > 10) {
+    touchMoved = true;
+  }
+  
+  // Only update ghost position if it's a small movement (positioning, not rotating)
+  if (moveDistance < 30) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
+    
+    ray.setFromCamera(mouse, camera);
+    const hit = ray.intersectObject(plane)[0];
+    if (hit) {
+      lastHit = hit;
+      updateGhost(hit);
+    }
+  }
+}
+
+function onTouchEnd(event) {
+  const touchDuration = Date.now() - touchStartTime;
+  
+  // Only place brick if it was a quick tap (not a drag/rotation) and not on UI elements
+  if (!touchMoved && touchDuration < 300 && !isInteractingWithControls) {
+    placeBrick();
+  }
+  
+  isInteractingWithControls = false;
+  touchMoved = false;
+}
+
+// Flag to track if interacting with sidebar or buttons
+let isInteractingWithControls = false;
+
+// Mark control interactions
+document.getElementById('sidebar').addEventListener('touchstart', () => {
+  isInteractingWithControls = true;
+}, { passive: true });
+
+document.querySelectorAll('.mobileBtn').forEach(btn => {
+  btn.addEventListener('touchstart', () => {
+    isInteractingWithControls = true;
+  }, { passive: true });
+});
+
+document.getElementById('toggleSidebar').addEventListener('touchstart', () => {
+  isInteractingWithControls = true;
+}, { passive: true });
+
+// Add touch listeners if on mobile
+if (isMobile) {
+  renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: true });
+  renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: true });
+  renderer.domElement.addEventListener('touchend', onTouchEnd, { passive: true });
+  
+  // Open sidebar by default on page load
+  setTimeout(() => {
+    sidebar.classList.add('open');
+  }, 1000);
+}
+
+// Prevent page scrolling when interacting with the canvas
+document.body.addEventListener('touchmove', (e) => {
+  if (e.target === renderer.domElement) {
+    e.preventDefault();
+  }
+}, { passive: false });
+</script>
+</body>
+</html>

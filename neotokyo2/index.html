@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeoTokyo Nights: Infinite Cyberpunk Adventure</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+        :root {
+            --neon-green: #00ff00;
+            --neon-pink: #ff00ff;
+            --neon-cyan: #00ffff;
+            --neon-yellow: #ffff00;
+            --dark-bg: #0a0a0a;
+            --panel-bg: #111;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: var(--dark-bg);
+            color: var(--neon-green);
+            margin: 0;
+            padding: 10px;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background-image: 
+                repeating-linear-gradient(
+                    0deg,
+                    rgba(0, 255, 0, 0.03) 0px,
+                    transparent 1px,
+                    transparent 2px,
+                    rgba(0, 255, 0, 0.03) 3px
+                );
+            animation: scan 8s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 10px; }
+        }
+
+        @keyframes glitch {
+            0%, 100% { 
+                text-shadow: 
+                    2px 2px var(--neon-cyan),
+                    -1px -1px var(--neon-pink);
+            }
+            25% { 
+                text-shadow: 
+                    -2px 2px var(--neon-pink),
+                    1px -1px var(--neon-cyan);
+            }
+            50% { 
+                text-shadow: 
+                    2px -2px var(--neon-yellow),
+                    -1px 1px var(--neon-pink);
+            }
+            75% { 
+                text-shadow: 
+                    -2px -2px var(--neon-cyan),
+                    1px 1px var(--neon-yellow);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        #game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: var(--panel-bg);
+            border: 2px solid var(--neon-green);
+            padding: 20px;
+            box-shadow: 
+                0 0 20px var(--neon-green),
+                inset 0 0 20px rgba(0, 255, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #game-container::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--neon-pink), var(--neon-cyan), var(--neon-green), var(--neon-yellow));
+            z-index: -1;
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        h1 {
+            color: var(--neon-pink);
+            text-align: center;
+            animation: glitch 4s infinite;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        #ascii-art {
+            font-family: 'VT323', monospace;
+            font-size: 10px;
+            line-height: 1;
+            color: var(--neon-cyan);
+            text-align: center;
+            margin: 10px 0;
+            white-space: pre;
+            opacity: 0.8;
+        }
+
+        #story {
+            margin-bottom: 20px;
+            min-height: 120px;
+            font-size: 10px;
+            line-height: 1.8;
+        }
+
+        #choices {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #333;
+            color: var(--neon-green);
+            border: 1px solid var(--neon-green);
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, var(--neon-green), transparent);
+            transition: left 0.5s;
+        }
+
+        button:hover::before {
+            left: 100%;
+        }
+
+        button:hover {
+            background-color: var(--neon-green);
+            color: var(--panel-bg);
+            box-shadow: 0 0 10px var(--neon-green);
+        }
+
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .stat {
+            background-color: rgba(0, 255, 0, 0.1);
+            padding: 8px;
+            border: 1px solid var(--neon-green);
+            text-align: center;
+            font-size: 9px;
+        }
+
+        .stat-bar {
+            height: 8px;
+            background-color: #333;
+            margin-top: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-fill {
+            height: 100%;
+            background-color: var(--neon-green);
+            transition: width 0.5s ease;
+        }
+
+        #skills, #augmentations, #factions {
+            margin-top: 15px;
+            font-size: 9px;
+        }
+
+        .skill-item, .aug-item {
+            display: inline-block;
+            margin: 2px;
+            padding: 3px 6px;
+            background-color: rgba(0, 255, 255, 0.2);
+            border: 1px solid var(--neon-cyan);
+        }
+
+        .faction-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 2px 0;
+            padding: 3px;
+            background-color: rgba(255, 0, 255, 0.1);
+            border: 1px solid var(--neon-pink);
+        }
+
+        #inventory {
+            margin-top: 15px;
+            font-size: 9px;
+        }
+
+        .inv-item {
+            display: inline-block;
+            margin: 2px;
+            padding: 3px 6px;
+            background-color: rgba(255, 255, 0, 0.2);
+            border: 1px solid var(--neon-yellow);
+        }
+
+        #combat-log {
+            background-color: rgba(255, 0, 0, 0.1);
+            border: 1px solid #ff0000;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 9px;
+            max-height: 150px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        #back-button {
+            background-color: #f00;
+            color: #fff;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+            font-size: 10px;
+            padding: 8px 16px;
+            border: 1px solid #f00;
+        }
+
+        #back-button:hover {
+            background-color: #c00;
+            box-shadow: 0 0 10px #f00;
+        }
+
+        .glitch-text {
+            animation: glitch 0.5s infinite;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .shake {
+            animation: shake 0.5s;
+        }
+
+        #notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 255, 0, 0.9);
+            color: #000;
+            padding: 10px 20px;
+            border: 2px solid #000;
+            font-size: 10px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .cyber-text {
+            background: linear-gradient(90deg, var(--neon-green), var(--neon-cyan), var(--neon-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body>
+    <div id="notification"></div>
+    <div id="game-container">
+        <h1>NeoTokyo Nights: Redux</h1>
+        <div id="ascii-art"></div>
+        <div id="story"></div>
+        <div id="combat-log"></div>
+        <div id="choices"></div>
+        
+        <div class="stats-panel">
+            <div class="stat">
+                HP: <span id="hp">100</span>/<span id="max-hp">100</span>
+                <div class="stat-bar"><div class="stat-fill" id="hp-bar"></div></div>
+            </div>
+            <div class="stat">
+                Energy: <span id="energy">100</span>/100
+                <div class="stat-bar"><div class="stat-fill" id="energy-bar"></div></div>
+            </div>
+            <div class="stat">
+                Credits: ¥<span id="credits">1000</span>
+            </div>
+            <div class="stat">
+                XP: <span id="xp">0</span>
+            </div>
+            <div class="stat">
+                Level: <span id="level">1</span>
+            </div>
+            <div class="stat">
+                Street Cred: <span id="rep">0</span>
+            </div>
+        </div>
+
+        <div id="skills">
+            <strong>Skills:</strong> <span id="skill-list"></span>
+        </div>
+
+        <div id="augmentations">
+            <strong>Augmentations:</strong> <span id="aug-list"></span>
+        </div>
+
+        <div id="factions">
+            <strong>Faction Standing:</strong>
+            <div id="faction-list"></div>
+        </div>
+        
+        <div id="inventory">
+            <strong>Inventory:</strong> <span id="inv-items"></span>
+        </div>
+    </div>
+    <div><a href="../index.html" id="back-button">Back to Experiments</a></div>
+
+    <script>
+        // Game State
+        const gameState = {
+            // Basic Stats
+            hp: 100,
+            maxHp: 100,
+            energy: 100,
+            credits: 1000,
+            xp: 0,
+            level: 1,
+            streetCred: 0,
+            
+            // Skills (0-10 scale)
+            skills: {
+                hacking: 1,
+                combat: 1,
+                stealth: 1,
+                charisma: 1,
+                tech: 1
+            },
+            
+            // Augmentations
+            augmentations: [],
+            
+            // Inventory
+            inventory: [],
+            equipped: {
+                weapon: null,
+                armor: null,
+                cyberdeck: null
+            },
+            
+            // Factions (-10 to 10)
+            factions: {
+                "Arasaka Corp": 0,
+                "NetWatch": 0,
+                "Tyger Claws": 0,
+                "Maelstrom": 0,
+                "Nomads": 0,
+                "Underground": 0
+            },
+            
+            // Story Memory
+            storyMemory: {
+                currentMission: null,
+                missionStage: 0,
+                completedMissions: [],
+                killedNPCs: [],
+                savedNPCs: [],
+                majorChoices: [],
+                relationships: {},
+                flags: {}
+            },
+            
+            // Current Context
+            currentLocation: null,
+            currentNPC: null,
+            inCombat: false,
+            enemy: null
+        };
+
+        // DOM Elements
+        const story = document.getElementById('story');
+        const choices = document.getElementById('choices');
+        const asciiArt = document.getElementById('ascii-art');
+        const combatLog = document.getElementById('combat-log');
+        const notification = document.getElementById('notification');
+
+        // ASCII Art Library
+        const asciiArtLibrary = {
+            cityscape: `
+    ╔═══════════════════════════════════════╗
+    ║  ┌─┐ ┌─┐ ╔╗╔╔═╗╔═╗╔╦╗╔═╗╦╔═╦ ╦╔═╗  ║
+    ║  │││ ├┤  ║║║║╣ ║ ║ ║ ║ ║╠╩╗╚╦╝║ ║  ║
+    ║  ┘ ┘ └─┘ ╝╚╝╚═╝╚═╝ ╩ ╚═╝╩ ╩ ╩ ╚═╝  ║
+    ╚═══════════════════════════════════════╝`,
+            
+            skull: `
+         _____ 
+        /     \\
+       | () () |
+        \\  ^  /
+         |||||
+         |||||`,
+            
+            cyberdeck: `
+    ╔═══════════╗
+    ║ ◊ CYBERDECK ◊ ║
+    ║ ░░░░░░░░░░ ║
+    ╚═══════════╝`,
+            
+            combat: `
+      ╔═══╗     ╔═══╗
+      ║ X ║ VS  ║ O ║
+      ╚═══╝     ╚═══╝`
+        };
+
+        // Enhanced Story Generation Data
+        const storyData = {
+            locations: {
+                "Kabuki District": { danger: 3, techLevel: 5, description: "neon-soaked streets filled with vendors and gangs" },
+                "Arasaka Tower": { danger: 9, techLevel: 10, description: "gleaming corporate fortress reaching into the clouds" },
+                "The Afterlife Bar": { danger: 5, techLevel: 6, description: "legendary merc hangout where deals are made" },
+                "Pacifica": { danger: 8, techLevel: 3, description: "abandoned district ruled by gangs and chaos" },
+                "Cyberspace Node": { danger: 6, techLevel: 10, description: "virtual reality construct pulsing with data" },
+                "Black Market": { danger: 6, techLevel: 7, description: "hidden bazaar of illegal tech and weapons" },
+                "Doc Ryder's Clinic": { danger: 2, techLevel: 8, description: "back-alley ripper doc specializing in combat augmentations" },
+                "Maglev Station": { danger: 4, techLevel: 8, description: "high-speed transport hub connecting the city" },
+                "Waste Processing Plant": { danger: 7, techLevel: 4, description: "toxic industrial complex hiding dark secrets" },
+                "Cloud District": { danger: 3, techLevel: 9, description: "exclusive area where the ultra-rich live above the smog" }
+            },
+            
+            npcs: {
+                "V1CT0R-7": { type: "AI", faction: "NetWatch", personality: "calculating", skills: { hacking: 9, combat: 3 } },
+                "Akira 'Neon' Tanaka": { type: "Street Samurai", faction: "Tyger Claws", personality: "honorable", skills: { combat: 8, stealth: 6 } },
+                "Dr. Elizabeth Chen": { type: "Scientist", faction: "Arasaka Corp", personality: "ambitious", skills: { tech: 9, charisma: 4 } },
+                "Ghost": { type: "Netrunner", faction: "Underground", personality: "paranoid", skills: { hacking: 10, stealth: 8 } },
+                "Marcus 'Hammer' Jones": { type: "Solo", faction: "Nomads", personality: "loyal", skills: { combat: 9, tech: 5 } },
+                "Synthia": { type: "Doll", faction: null, personality: "mysterious", skills: { charisma: 8, stealth: 7 } },
+                "Rex Chrome": { type: "Fixer", faction: "Underground", personality: "opportunistic", skills: { charisma: 9, combat: 4 } }
+            },
+            
+            missionTypes: {
+                "Data Heist": { 
+                    requiredSkills: ["hacking", "stealth"], 
+                    stages: ["infiltration", "access", "download", "escape"],
+                    rewards: { credits: [800, 1500], xp: [50, 100], items: ["cyberdeck", "data_shard"] }
+                },
+                "Assassination": { 
+                    requiredSkills: ["combat", "stealth"], 
+                    stages: ["intel", "approach", "eliminate", "vanish"],
+                    rewards: { credits: [1000, 2000], xp: [75, 150], items: ["weapon", "armor"] }
+                },
+                "Escort": { 
+                    requiredSkills: ["combat", "charisma"], 
+                    stages: ["meet", "travel", "ambush", "deliver"],
+                    rewards: { credits: [600, 1200], xp: [40, 80], items: ["medkit", "stim"] }
+                },
+                "Sabotage": { 
+                    requiredSkills: ["tech", "stealth"], 
+                    stages: ["recon", "infiltrate", "plant", "exfiltrate"],
+                    rewards: { credits: [900, 1800], xp: [60, 120], items: ["explosive", "tech_parts"] }
+                },
+                "Negotiation": { 
+                    requiredSkills: ["charisma", "hacking"], 
+                    stages: ["prepare", "meet", "negotiate", "conclude"],
+                    rewards: { credits: [700, 1400], xp: [45, 90], items: ["contact", "info"] }
+                }
+            },
+            
+            complications: {
+                "Double Cross": { danger: 8, description: "Your client betrays you mid-mission" },
+                "Corp Intervention": { danger: 9, description: "Corporate security forces arrive" },
+                "Gang War": { danger: 7, description: "You're caught between rival gangs" },
+                "System Malfunction": { danger: 6, description: "Your augmentations start glitching" },
+                "Time Bomb": { danger: 10, description: "A nano-bomb has been planted in your system" },
+                "AI Takeover": { danger: 8, description: "A rogue AI hijacks local systems" },
+                "Memory Leak": { danger: 5, description: "Your memories start fragmenting" }
+            },
+            
+            items: {
+                // Weapons
+                "Tsunami Nue": { type: "weapon", damage: 15, cost: 1200, description: "Smart pistol with tracking rounds" },
+                "Mantis Blades": { type: "weapon", damage: 25, cost: 3000, description: "Retractable arm blades", augmentation: true },
+                "Overwatch": { type: "weapon", damage: 35, cost: 4500, description: "Precision sniper rifle" },
+                
+                // Armor
+                "Arasaka Vest": { type: "armor", defense: 10, cost: 800, description: "Corporate-grade body armor" },
+                "Subdermal Armor": { type: "armor", defense: 20, cost: 2500, description: "Synthetic skin weave", augmentation: true },
+                
+                // Cyberdecks
+                "Raven Microcyber": { type: "cyberdeck", hackBonus: 2, cost: 1000, description: "Entry-level hacking deck" },
+                "Netwatch Netdriver": { type: "cyberdeck", hackBonus: 5, cost: 5000, description: "Military-grade cyberdeck" },
+                
+                // Consumables
+                "MaxDoc": { type: "consumable", effect: "heal", value: 50, cost: 200, description: "Military-grade healing inhaler" },
+                "Synapse Accelerator": { type: "consumable", effect: "skillBoost", value: 2, cost: 500, description: "Temporary reflex enhancement" },
+                
+                // Augmentations
+                "Kiroshi Optics": { type: "augmentation", slot: "eyes", bonus: { combat: 1, hacking: 1 }, cost: 2000 },
+                "Syn-Lungs": { type: "augmentation", slot: "torso", bonus: { energy: 20 }, cost: 1500 },
+                "Reinforced Tendons": { type: "augmentation", slot: "legs", bonus: { stealth: 2 }, cost: 2500 }
+            }
+        };
+
+        // Utility Functions
+        function random(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function randomChoice(array) {
+            return array[Math.floor(Math.random() * array.length)];
+        }
+
+        function showNotification(message, duration = 3000) {
+            notification.textContent = message;
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, duration);
+        }
+
+        function updateDisplay() {
+            // Update basic stats
+            document.getElementById('hp').textContent = gameState.hp;
+            document.getElementById('max-hp').textContent = gameState.maxHp;
+            document.getElementById('energy').textContent = gameState.energy;
+            document.getElementById('credits').textContent = gameState.credits;
+            document.getElementById('xp').textContent = gameState.xp;
+            document.getElementById('level').textContent = gameState.level;
+            document.getElementById('rep').textContent = gameState.streetCred;
+            
+            // Update stat bars
+            document.getElementById('hp-bar').style.width = `${(gameState.hp / gameState.maxHp) * 100}%`;
+            document.getElementById('energy-bar').style.width = `${gameState.energy}%`;
+            
+            // Update skills
+            const skillList = Object.entries(gameState.skills)
+                .map(([skill, level]) => `<span class="skill-item">${skill}: ${level}</span>`)
+                .join(' ');
+            document.getElementById('skill-list').innerHTML = skillList;
+            
+            // Update augmentations
+            const augList = gameState.augmentations.length > 0 
+                ? gameState.augmentations.map(aug => `<span class="aug-item">${aug}</span>`).join(' ')
+                : '<span style="opacity: 0.5">None</span>';
+            document.getElementById('aug-list').innerHTML = augList;
+            
+            // Update factions
+            const factionList = Object.entries(gameState.factions)
+                .map(([faction, standing]) => {
+                    const color = standing > 0 ? '#00ff00' : standing < 0 ? '#ff0000' : '#ffff00';
+                    return `<div class="faction-item">
+                        <span>${faction}:</span>
+                        <span style="color: ${color}">${standing > 0 ? '+' : ''}${standing}</span>
+                    </div>`;
+                })
+                .join('');
+            document.getElementById('faction-list').innerHTML = factionList;
+            
+            // Update inventory
+            const invList = gameState.inventory.length > 0
+                ? gameState.inventory.map(item => `<span class="inv-item">${item}</span>`).join(' ')
+                : '<span style="opacity: 0.5">Empty</span>';
+            document.getElementById('inv-items').innerHTML = invList;
+        }
+
+        function modifyStats(changes) {
+            if (changes.hp) {
+                gameState.hp = Math.max(0, Math.min(gameState.hp + changes.hp, gameState.maxHp));
+                if (changes.hp < 0) {
+                    document.getElementById('game-container').classList.add('shake');
+                    setTimeout(() => document.getElementById('game-container').classList.remove('shake'), 500);
+                }
+            }
+            if (changes.energy) gameState.energy = Math.max(0, Math.min(gameState.energy + changes.energy, 100));
+            if (changes.credits) gameState.credits = Math.max(0, gameState.credits + changes.credits);
+            if (changes.xp) {
+                gameState.xp += changes.xp;
+                checkLevelUp();
+            }
+            if (changes.streetCred) gameState.streetCred += changes.streetCred;
+            
+            if (changes.skills) {
+                Object.entries(changes.skills).forEach(([skill, change]) => {
+                    gameState.skills[skill] = Math.max(0, Math.min(gameState.skills[skill] + change, 10));
+                });
+            }
+            
+            if (changes.factions) {
+                Object.entries(changes.factions).forEach(([faction, change]) => {
+                    gameState.factions[faction] = Math.max(-10, Math.min(gameState.factions[faction] + change, 10));
+                });
+            }
+            
+            updateDisplay();
+            
+            if (gameState.hp <= 0) {
+                gameOver();
+            }
+        }
+
+        function checkLevelUp() {
+            const xpNeeded = gameState.level * 100;
+            if (gameState.xp >= xpNeeded) {
+                gameState.level++;
+                gameState.xp -= xpNeeded;
+                gameState.maxHp += 10;
+                gameState.hp = gameState.maxHp;
+                showNotification(`LEVEL UP! You are now level ${gameState.level}`);
+                
+                // Skill point allocation
+                showScene({
+                    text: `<span class="cyber-text">LEVEL UP!</span> Choose a skill to improve:`,
+                    choices: Object.keys(gameState.skills).map(skill => ({
+                        text: `Improve ${skill} (currently ${gameState.skills[skill]})`,
+                        action: () => {
+                            modifyStats({ skills: { [skill]: 1 } });
+                            continueStory();
+                        }
+                    }))
+                });
+            }
+        }
+
+        function showScene(scene) {
+            story.innerHTML = scene.text;
+            choices.innerHTML = '';
+            
+            if (scene.ascii) {
+                asciiArt.textContent = scene.ascii;
+                asciiArt.style.display = 'block';
+            } else {
+                asciiArt.style.display = 'none';
+            }
+            
+            scene.choices.forEach(choice => {
+                const button = document.createElement('button');
+                button.innerHTML = choice.text;
+                
+                // Check requirements
+                if (choice.requirements) {
+                    const meetsReqs = checkRequirements(choice.requirements);
+                    if (!meetsReqs) {
+                        button.disabled = true;
+                        button.style.opacity = '0.5';
+                        button.innerHTML += ' [LOCKED]';
+                    }
+                }
+                
+                button.onclick = () => {
+                    if (!button.disabled) {
+                        choice.action();
+                    }
+                };
+                choices.appendChild(button);
+            });
+        }
+
+        function checkRequirements(reqs) {
+            if (reqs.skills) {
+                for (const [skill, level] of Object.entries(reqs.skills)) {
+                    if (gameState.skills[skill] < level) return false;
+                }
+            }
+            if (reqs.items) {
+                for (const item of reqs.items) {
+                    if (!gameState.inventory.includes(item)) return false;
+                }
+            }
+            if (reqs.credits && gameState.credits < reqs.credits) return false;
+            if (reqs.faction) {
+                for (const [faction, standing] of Object.entries(reqs.faction)) {
+                    if (gameState.factions[faction] < standing) return false;
+                }
+            }
+            return true;
+        }
+
+        // Combat System
+        function initiateCombat(enemyName, enemyStats) {
+            gameState.inCombat = true;
+            gameState.enemy = {
+                name: enemyName,
+                hp: enemyStats.hp || 50,
+                maxHp: enemyStats.hp || 50,
+                damage: enemyStats.damage || 10,
+                defense: enemyStats.defense || 5,
+                skills: enemyStats.skills || {}
+            };
+            
+            combatLog.style.display = 'block';
+            combatLog.innerHTML = `<div class="glitch-text">COMBAT INITIATED: ${enemyName}</div>`;
+            
+            showCombatRound();
+        }
+
+        function showCombatRound() {
+            const combatScene = {
+                text: `<span style="color: #ff0000">COMBAT</span><br>
+                       ${gameState.enemy.name}: ${gameState.enemy.hp}/${gameState.enemy.maxHp} HP<br>
+                       You: ${gameState.hp}/${gameState.maxHp} HP | Energy: ${gameState.energy}/100`,
+                ascii: asciiArtLibrary.combat,
+                choices: []
+            };
+            
+            // Basic Attack
+            combatScene.choices.push({
+                text: "Attack with weapon",
+                action: () => performAttack('weapon')
+            });
+            
+            // Skill-based attacks
+            if (gameState.skills.hacking >= 3 && gameState.energy >= 20) {
+                combatScene.choices.push({
+                    text: "Neural Hack [-20 Energy]",
+                    action: () => performAttack('hack')
+                });
+            }
+            
+            if (gameState.skills.combat >= 5 && gameState.energy >= 30) {
+                combatScene.choices.push({
+                    text: "Precision Strike [-30 Energy]",
+                    action: () => performAttack('precision')
+                });
+            }
+            
+            // Items
+            if (gameState.inventory.includes("MaxDoc")) {
+                combatScene.choices.push({
+                    text: "Use MaxDoc [+50 HP]",
+                    action: () => useItem("MaxDoc")
+                });
+            }
+            
+            // Escape
+            if (gameState.skills.stealth >= 3) {
+                combatScene.choices.push({
+                    text: "Attempt to escape",
+                    requirements: { skills: { stealth: 3 } },
+                    action: () => attemptEscape()
+                });
+            }
+            
+            showScene(combatScene);
+        }
+
+        function performAttack(type) {
+            let playerDamage = 10 + gameState.skills.combat;
+            let energyCost = 0;
+            let message = "";
+            
+            switch(type) {
+                case 'weapon':
+                    if (gameState.equipped.weapon) {
+                        const weapon = storyData.items[gameState.equipped.weapon];
+                        playerDamage += weapon.damage || 0;
+                    }
+                    message = "You attack with your weapon!";
+                    break;
+                case 'hack':
+                    playerDamage = 15 + (gameState.skills.hacking * 2);
+                    energyCost = 20;
+                    message = "You launch a neural attack!";
+                    break;
+                case 'precision':
+                    playerDamage = 20 + (gameState.skills.combat * 3);
+                    energyCost = 30;
+                    message = "You execute a precision strike!";
+                    break;
+            }
+            
+            // Apply damage
+            const actualDamage = Math.max(1, playerDamage - gameState.enemy.defense);
+            gameState.enemy.hp -= actualDamage;
+            modifyStats({ energy: -energyCost });
+            
+            combatLog.innerHTML += `<div>${message} ${actualDamage} damage!</div>`;
+            
+            if (gameState.enemy.hp <= 0) {
+                endCombat(true);
+            } else {
+                enemyTurn();
+            }
+        }
+
+        function enemyTurn() {
+            const enemyDamage = Math.max(1, gameState.enemy.damage - (gameState.equipped.armor ? 5 : 0));
+            modifyStats({ hp: -enemyDamage });
+            
+            combatLog.innerHTML += `<div style="color: #ff0000">${gameState.enemy.name} attacks! ${enemyDamage} damage!</div>`;
+            combatLog.scrollTop = combatLog.scrollHeight;
+            
+            setTimeout(() => {
+                if (gameState.hp > 0) {
+                    showCombatRound();
+                }
+            }, 1000);
+        }
+
+        function useItem(itemName) {
+            if (itemName === "MaxDoc") {
+                modifyStats({ hp: 50 });
+                gameState.inventory = gameState.inventory.filter(item => item !== itemName);
+                combatLog.innerHTML += `<div style="color: #00ff00">You use MaxDoc! +50 HP</div>`;
+                updateDisplay();
+                enemyTurn();
+            }
+        }
+
+        function attemptEscape() {
+            const escapeChance = 30 + (gameState.skills.stealth * 10);
+            if (random(1, 100) <= escapeChance) {
+                combatLog.innerHTML += `<div style="color: #00ffff">You successfully escape!</div>`;
+                endCombat(false);
+            } else {
+                combatLog.innerHTML += `<div style="color: #ff0000">Escape failed!</div>`;
+                enemyTurn();
+            }
+        }
+
+        function endCombat(victory) {
+            gameState.inCombat = false;
+            
+            if (victory) {
+                const xpReward = random(20, 50) * gameState.level;
+                const creditReward = random(100, 300) * gameState.level;
+                modifyStats({ xp: xpReward, credits: creditReward, streetCred: 1 });
+                
+                setTimeout(() => {
+                    combatLog.style.display = 'none';
+                    showNotification(`Victory! +${xpReward} XP, +¥${creditReward}`);
+                    continueStory();
+                }, 2000);
+            } else {
+                setTimeout(() => {
+                    combatLog.style.display = 'none';
+                    continueStory();
+                }, 1500);
+            }
+        }
+
+        // Mission System
+        function generateMission() {
+            const missionType = randomChoice(Object.keys(storyData.missionTypes));
+            const mission = storyData.missionTypes[missionType];
+            const client = randomChoice(Object.keys(storyData.npcs));
+            const location = randomChoice(Object.keys(storyData.locations));
+            const complication = randomChoice(Object.keys(storyData.complications));
+            
+            gameState.storyMemory.currentMission = {
+                type: missionType,
+                client: client,
+                location: location,
+                complication: complication,
+                stage: 0,
+                data: mission
+            };
+            
+            const npc = storyData.npcs[client];
+            const loc = storyData.locations[location];
+            
+            return {
+                text: `You receive an encrypted message from ${client}, a ${npc.type} ${npc.faction ? `affiliated with ${npc.faction}` : 'freelancer'}.<br><br>
+                       "${missionType} job. Location: ${location} - ${loc.description}. 
+                       Payment: ¥${random(...mission.rewards.credits)}. 
+                       Warning: ${storyData.complications[complication].description}. Interested?"`,
+                ascii: asciiArtLibrary.cyberdeck,
+                choices: [
+                    {
+                        text: "Accept the mission",
+                        action: () => startMission()
+                    },
+                    {
+                        text: "Negotiate for better pay",
+                        requirements: { skills: { charisma: 3 } },
+                        action: () => negotiateMission()
+                    },
+                    {
+                        text: "Gather intel first",
+                        requirements: { skills: { hacking: 2 } },
+                        action: () => gatherIntel()
+                    },
+                    {
+                        text: "Decline and find another job",
+                        action: () => {
+                            modifyStats({ streetCred: -1 });
+                            showScene(generateMission());
+                        }
+                    }
+                ]
+            };
+        }
+
+        function startMission() {
+            const mission = gameState.storyMemory.currentMission;
+            const stage = mission.data.stages[mission.stage];
+            
+            showNotification(`Mission Started: ${mission.type}`);
+            
+            // Generate stage-specific content
+            switch(stage) {
+                case "infiltration":
+                case "infiltrate":
+                    infiltrationStage();
+                    break;
+                case "access":
+                case "hack":
+                    hackingStage();
+                    break;
+                case "combat":
+                case "eliminate":
+                case "ambush":
+                    combatStage();
+                    break;
+                case "escape":
+                case "exfiltrate":
+                case "vanish":
+                    escapeStage();
+                    break;
+                default:
+                    genericMissionStage();
+            }
+        }
+
+        function infiltrationStage() {
+            const mission = gameState.storyMemory.currentMission;
+            const location = storyData.locations[mission.location];
+            
+            showScene({
+                text: `You arrive at ${mission.location}. ${location.description}. 
+                       Security level: ${location.danger}/10. How do you proceed?`,
+                choices: [
+                    {
+                        text: "Stealth approach",
+                        requirements: { skills: { stealth: Math.floor(location.danger / 2) } },
+                        action: () => {
+                            if (random(1, 10) + gameState.skills.stealth > location.danger) {
+                                modifyStats({ xp: 20 });
+                                showNotification("Infiltration successful!");
+                                advanceMission();
+                            } else {
+                                modifyStats({ hp: -10 });
+                                showNotification("Detected! Security alerted!");
+                                initiateCombat("Security Guard", { hp: 40, damage: 12, defense: 8 });
+                            }
+                        }
+                    },
+                    {
+                        text: "Hack security systems",
+                        requirements: { skills: { hacking: Math.floor(location.techLevel / 2) } },
+                        action: () => {
+                            if (random(1, 10) + gameState.skills.hacking > location.techLevel) {
+                                modifyStats({ xp: 25, energy: -20 });
+                                showNotification("Security disabled!");
+                                advanceMission();
+                            } else {
+                                modifyStats({ energy: -30 });
+                                showNotification("Hack failed! Countermeasures activated!");
+                                gameState.storyMemory.flags.alertTriggered = true;
+                                advanceMission();
+                            }
+                        }
+                    },
+                    {
+                        text: "Frontal assault",
+                        action: () => {
+                            showNotification("Going in loud!");
+                            initiateCombat("Security Team", { hp: 60, damage: 15, defense: 10 });
+                        }
+                    }
+                ]
+            });
+        }
+
+        function hackingStage() {
+            showScene({
+                text: `You've reached the target system. Complex ICE (Intrusion Countermeasures Electronics) protects the data. 
+                       Your cyberdeck hums with anticipation.`,
+                ascii: asciiArtLibrary.cyberdeck,
+                choices: [
+                    {
+                        text: "Brute force attack",
+                        action: () => {
+                            const success = random(1, 10) + gameState.skills.hacking > 8;
+                            if (success) {
+                                modifyStats({ xp: 30, energy: -40 });
+                                gameState.inventory.push("Encrypted Data");
+                                showNotification("Data acquired!");
+                                advanceMission();
+                            } else {
+                                modifyStats({ hp: -20, energy: -40 });
+                                showNotification("ICE counterattack! Neural feedback!");
+                                advanceMission();
+                            }
+                        }
+                    },
+                    {
+                        text: "Stealth infiltration",
+                        requirements: { skills: { hacking: 5 } },
+                        action: () => {
+                            modifyStats({ xp: 40, energy: -20 });
+                            gameState.inventory.push("Encrypted Data");
+                            gameState.inventory.push("Bonus Intel");
+                            showNotification("Perfect hack! Bonus data acquired!");
+                            advanceMission();
+                        }
+                    },
+                    {
+                        text: "Deploy virus",
+                        requirements: { items: ["Virus Program"] },
+                        action: () => {
+                            modifyStats({ xp: 35 });
+                            gameState.inventory.push("Encrypted Data");
+                            showNotification("Virus deployed successfully!");
+                            advanceMission();
+                        }
+                    }
+                ]
+            });
+        }
+
+        function combatStage() {
+            const mission = gameState.storyMemory.currentMission;
+            const enemy = mission.type === "Assassination" ? "Target" : "Enemy Forces";
+            
+            showNotification("Combat encounter!");
+            initiateCombat(enemy, { 
+                hp: 50 + (gameState.level * 10), 
+                damage: 10 + gameState.level, 
+                defense: 5 + Math.floor(gameState.level / 2) 
+            });
+        }
+
+        function escapeStage() {
+            const mission = gameState.storyMemory.currentMission;
+            
+            showScene({
+                text: `Mission complete! Now you need to escape. ${
+                    gameState.storyMemory.flags.alertTriggered 
+                        ? "Security is on high alert!" 
+                        : "The exit routes are clear."
+                }`,
+                choices: [
+                    {
+                        text: "Quick exit via main route",
+                        action: () => {
+                            if (gameState.storyMemory.flags.alertTriggered) {
+                                initiateCombat("Security Response Team", { hp: 80, damage: 20, defense: 12 });
+                            } else {
+                                completeMission();
+                            }
+                        }
+                    },
+                    {
+                        text: "Stealth extraction",
+                        requirements: { skills: { stealth: 4 } },
+                        action: () => {
+                            modifyStats({ xp: 20 });
+                            completeMission();
+                        }
+                    },
+                    {
+                        text: "Call in extraction",
+                        requirements: { faction: { "Underground": 3 } },
+                        action: () => {
+                            modifyStats({ credits: -200 });
+                            showNotification("Extraction team en route!");
+                            completeMission();
+                        }
+                    }
+                ]
+            });
+        }
+
+        function genericMissionStage() {
+            const mission = gameState.storyMemory.currentMission;
+            const stage = mission.data.stages[mission.stage];
+            
+            showScene({
+                text: `Mission stage: ${stage}. The ${mission.complication} complicates things.`,
+                choices: [
+                    {
+                        text: "Proceed carefully",
+                        action: () => {
+                            const success = random(1, 10) > 5;
+                            if (success) {
+                                modifyStats({ xp: 15 });
+                                advanceMission();
+                            } else {
+                                modifyStats({ hp: -15 });
+                                showNotification("Complication triggered!");
+                                handleComplication();
+                            }
+                        }
+                    },
+                    {
+                        text: "Use relevant skill",
+                        action: () => {
+                            const skill = mission.data.requiredSkills[0];
+                            if (random(1, 10) + gameState.skills[skill] > 7) {
+                                modifyStats({ xp: 25, skills: { [skill]: 0.2 } });
+                                advanceMission();
+                            } else {
+                                modifyStats({ energy: -20 });
+                                advanceMission();
+                            }
+                        }
+                    }
+                ]
+            });
+        }
+
+        function advanceMission() {
+            const mission = gameState.storyMemory.currentMission;
+            mission.stage++;
+            
+            if (mission.stage >= mission.data.stages.length) {
+                completeMission();
+            } else {
+                continueStory();
+            }
+        }
+
+        function completeMission() {
+            const mission = gameState.storyMemory.currentMission;
+            const rewards = mission.data.rewards;
+            
+            const creditReward = random(...rewards.credits);
+            const xpReward = random(...rewards.xp);
+            const itemReward = randomChoice(rewards.items);
+            
+            modifyStats({ 
+                credits: creditReward, 
+                xp: xpReward, 
+                streetCred: 3,
+                factions: { [storyData.npcs[mission.client].faction || "Underground"]: 1 }
+            });
+            
+            if (itemReward && random(1, 10) > 5) {
+                gameState.inventory.push(itemReward);
+                showNotification(`Mission complete! +¥${creditReward}, +${xpReward} XP, Found: ${itemReward}`);
+            } else {
+                showNotification(`Mission complete! +¥${creditReward}, +${xpReward} XP`);
+            }
+            
+            gameState.storyMemory.completedMissions.push(mission.type);
+            gameState.storyMemory.currentMission = null;
+            
+            setTimeout(() => continueStory(), 2000);
+        }
+
+        function handleComplication() {
+            const mission = gameState.storyMemory.currentMission;
+            const comp = storyData.complications[mission.complication];
+            
+            showScene({
+                text: `COMPLICATION: ${comp.description}`,
+                choices: [
+                    {
+                        text: "Fight through it",
+                        action: () => {
+                            initiateCombat("Complication Forces", { 
+                                hp: 30 + (comp.danger * 5), 
+                                damage: comp.danger * 2, 
+                                defense: comp.danger 
+                            });
+                        }
+                    },
+                    {
+                        text: "Find another way",
+                        requirements: { skills: { tech: 3 } },
+                        action: () => {
+                            modifyStats({ energy: -30 });
+                            showNotification("Workaround found!");
+                            advanceMission();
+                        }
+                    },
+                    {
+                        text: "Abort mission",
+                        action: () => {
+                            modifyStats({ streetCred: -2 });
+                            gameState.storyMemory.currentMission = null;
+                            showNotification("Mission aborted.");
+                            continueStory();
+                        }
+                    }
+                ]
+            });
+        }
+
+        function negotiateMission() {
+            const mission = gameState.storyMemory.currentMission;
+            const baseCredits = mission.data.rewards.credits[1];
+            
+            if (random(1, 10) + gameState.skills.charisma > 6) {
+                const bonus = Math.floor(baseCredits * 0.3);
+                mission.data.rewards.credits[0] += bonus;
+                mission.data.rewards.credits[1] += bonus;
+                modifyStats({ skills: { charisma: 0.1 } });
+                showNotification(`Negotiation successful! +¥${bonus} to payment`);
+                startMission();
+            } else {
+                modifyStats({ factions: { [storyData.npcs[mission.client].faction || "Underground"]: -1 } });
+                showNotification("Client is annoyed by your demands.");
+                showScene(generateMission());
+            }
+        }
+
+        function gatherIntel() {
+            const mission = gameState.storyMemory.currentMission;
+            modifyStats({ energy: -15, credits: -100 });
+            
+            const intel = [
+                `Target has ${randomChoice(["light", "moderate", "heavy"])} security`,
+                `Best approach: ${randomChoice(mission.data.requiredSkills)} skill`,
+                `Complication severity: ${storyData.complications[mission.complication].danger}/10`
+            ];
+            
+            showScene({
+                text: `Intel gathered:<br>• ${intel.join('<br>• ')}<br><br>Proceed with mission?`,
+                choices: [
+                    {
+                        text: "Start mission with intel advantage",
+                        action: () => {
+                            gameState.storyMemory.flags.hasIntel = true;
+                            startMission();
+                        }
+                    },
+                    {
+                        text: "Look for a different job",
+                        action: () => showScene(generateMission())
+                    }
+                ]
+            });
+        }
+
+        // Location Activities
+        function visitLocation(locationName) {
+            const location = storyData.locations[locationName];
+            gameState.currentLocation = locationName;
+            
+            const activities = {
+                "Black Market": () => visitBlackMarket(),
+                "The Afterlife Bar": () => visitAfterlife(),
+                "Doc Ryder's Clinic": () => visitClinic(),
+                "Cyberspace Node": () => visitCyberspace()
+            };
+            
+            if (activities[locationName]) {
+                activities[locationName]();
+            } else {
+                showScene({
+                    text: `You arrive at ${locationName}. ${location.description}`,
+                    choices: [
+                        {
+                            text: "Look for work",
+                            action: () => showScene(generateMission())
+                        },
+                        {
+                            text: "Explore the area",
+                            action: () => exploreLocation(locationName)
+                        },
+                        {
+                            text: "Leave",
+                            action: () => continueStory()
+                        }
+                    ]
+                });
+            }
+        }
+
+        function visitBlackMarket() {
+            const availableItems = Object.entries(storyData.items)
+                .filter(([name, item]) => !item.augmentation)
+                .slice(0, 5);
+            
+            showScene({
+                text: "The black market dealer shows you their wares. 'Credits only, no questions asked.'",
+                choices: [
+                    ...availableItems.map(([name, item]) => ({
+                        text: `${name} - ¥${item.cost} (${item.description})`,
+                        action: () => {
+                            if (gameState.credits >= item.cost) {
+                                modifyStats({ credits: -item.cost });
+                                if (item.type === "weapon" || item.type === "armor" || item.type === "cyberdeck") {
+                                    gameState.equipped[item.type] = name;
+                                }
+                                gameState.inventory.push(name);
+                                showNotification(`Purchased ${name}!`);
+                                visitBlackMarket();
+                            } else {
+                                showNotification("Not enough credits!");
+                            }
+                        }
+                    })),
+                    {
+                        text: "Leave the market",
+                        action: () => continueStory()
+                    }
+                ]
+            });
+        }
+
+        function visitClinic() {
+            const augmentations = Object.entries(storyData.items)
+                .filter(([name, item]) => item.augmentation);
+            
+            showScene({
+                text: "Doc Ryder examines you with cybernetic eyes. 'Looking to upgrade your meat, choom?'",
+                choices: [
+                    {
+                        text: `Full heal - ¥${100 * gameState.level}`,
+                        action: () => {
+                            const cost = 100 * gameState.level;
+                            if (gameState.credits >= cost) {
+                                modifyStats({ credits: -cost, hp: gameState.maxHp });
+                                showNotification("Fully healed!");
+                                visitClinic();
+                            } else {
+                                showNotification("Not enough credits!");
+                            }
+                        }
+                    },
+                    ...augmentations.slice(0, 3).map(([name, aug]) => ({
+                        text: `Install ${name} - ¥${aug.cost}`,
+                        action: () => {
+                            if (gameState.credits >= aug.cost && !gameState.augmentations.includes(name)) {
+                                modifyStats({ credits: -aug.cost });
+                                gameState.augmentations.push(name);
+                                if (aug.bonus) {
+                                    Object.entries(aug.bonus).forEach(([stat, value]) => {
+                                        if (gameState.skills[stat] !== undefined) {
+                                            modifyStats({ skills: { [stat]: value } });
+                                        } else if (stat === "energy") {
+                                            gameState.energy += value;
+                                        }
+                                    });
+                                }
+                                showNotification(`${name} installed!`);
+                                visitClinic();
+                            } else {
+                                showNotification(gameState.augmentations.includes(name) ? "Already installed!" : "Not enough credits!");
+                            }
+                        }
+                    })),
+                    {
+                        text: "Leave the clinic",
+                        action: () => continueStory()
+                    }
+                ]
+            });
+        }
+
+        function visitAfterlife() {
+            showScene({
+                text: "The Afterlife Bar pulses with music and danger. Mercs, fixers, and rogues fill every corner.",
+                choices: [
+                    {
+                        text: "Talk to fixers for jobs",
+                        action: () => showScene(generateMission())
+                    },
+                    {
+                        text: "Gather information",
+                        requirements: { skills: { charisma: 3 } },
+                        action: () => {
+                            const info = [
+                                { text: "Corp convoy tomorrow night", type: "mission" },
+                                { text: "New ICE breaker on market", type: "item" },
+                                { text: "Turf war brewing", type: "danger" }
+                            ];
+                            const rumor = randomChoice(info);
+                            modifyStats({ credits: -50 });
+                            showNotification(`Rumor: ${rumor.text}`);
+                            continueStory();
+                        }
+                    },
+                    {
+                        text: "Challenge someone to combat",
+                        action: () => {
+                            showNotification("Bar fight!");
+                            initiateCombat("Drunk Merc", { hp: 60, damage: 15, defense: 5 });
+                        }
+                    },
+                    {
+                        text: "Leave",
+                        action: () => continueStory()
+                    }
+                ]
+            });
+        }
+
+        function visitCyberspace() {
+            showScene({
+                text: "You jack into cyberspace. Digital constructs swirl around your avatar.",
+                ascii: `
+    ░░░░░░░░░░░░░░░░░░░░
+    ░┌─┐┬ ┬┌┐ ┌─┐┬─┐░░░
+    ░│  └┬┘├┴┐├┤ ├┬┘░░░
+    ░└─┘ ┴ └─┘└─┘┴└─░░░
+    ░░░░░░░░░░░░░░░░░░░░`,
+                choices: [
+                    {
+                        text: "Data mining",
+                        requirements: { skills: { hacking: 3 } },
+                        action: () => {
+                            const reward = random(100, 300) * gameState.skills.hacking;
+                            modifyStats({ credits: reward, energy: -30 });
+                            showNotification(`Data mined! +¥${reward}`);
+                            continueStory();
+                        }
+                    },
+                    {
+                        text: "Hack corporate database",
+                        requirements: { skills: { hacking: 6 } },
+                        action: () => {
+                            if (random(1, 10) + gameState.skills.hacking > 12) {
+                                gameState.inventory.push("Corporate Secrets");
+                                modifyStats({ streetCred: 5, factions: { "Arasaka Corp": -3 } });
+                                showNotification("Major data breach! Corporate secrets acquired!");
+                            } else {
+                                modifyStats({ hp: -30, energy: -50 });
+                                showNotification("Black ICE defense! Neural damage!");
+                            }
+                            continueStory();
+                        }
+                    },
+                    {
+                        text: "Train hacking skills",
+                        requirements: { credits: 500 },
+                        action: () => {
+                            modifyStats({ credits: -500, skills: { hacking: 1 } });
+                            showNotification("Hacking skill improved!");
+                            continueStory();
+                        }
+                    },
+                    {
+                        text: "Jack out",
+                        action: () => continueStory()
+                    }
+                ]
+            });
+        }
+
+        function exploreLocation(locationName) {
+            const location = storyData.locations[locationName];
+            const encounters = [
+                () => {
+                    showNotification("Random encounter!");
+                    initiateCombat("Street Thug", { hp: 30, damage: 8, defense: 3 });
+                },
+                () => {
+                    const found = random(50, 200);
+                    modifyStats({ credits: found });
+                    showNotification(`Found ¥${found} in an alley!`);
+                    continueStory();
+                },
+                () => {
+                    const npc = randomChoice(Object.keys(storyData.npcs));
+                    showScene({
+                        text: `You encounter ${npc}. They have a proposition for you.`,
+                        choices: [
+                            {
+                                text: "Listen to their offer",
+                                action: () => showScene(generateMission())
+                            },
+                            {
+                                text: "Politely decline",
+                                action: () => continueStory()
+                            }
+                        ]
+                    });
+                }
+            ];
+            
+            randomChoice(encounters)();
+        }
+
+        // Main Story Flow
+        function continueStory() {
+            if (gameState.storyMemory.currentMission) {
+                startMission();
+            } else {
+                // Check for special conditions
+                if (gameState.streetCred >= 20 && !gameState.storyMemory.flags.reachedHighRep) {
+                    gameState.storyMemory.flags.reachedHighRep = true;
+                    specialEvent("highReputation");
+                } else if (gameState.factions["Arasaka Corp"] <= -5 && !gameState.storyMemory.flags.corpEnemy) {
+                    gameState.storyMemory.flags.corpEnemy = true;
+                    specialEvent("corporateNemesis");
+                } else {
+                    // Normal story continuation
+                    const locations = Object.keys(storyData.locations);
+                    showScene({
+                        text: "The neon-soaked streets of NeoTokyo await. Where do you go?",
+                        ascii: asciiArtLibrary.cityscape,
+                        choices: [
+                            {
+                                text: "Look for a job",
+                                action: () => showScene(generateMission())
+                            },
+                            ...locations.slice(0, 3).map(loc => ({
+                                text: `Visit ${loc}`,
+                                action: () => visitLocation(loc)
+                            })),
+                            {
+                                text: "Rest and recover",
+                                action: () => rest()
+                            }
+                        ]
+                    });
+                }
+            }
+        }
+
+        function specialEvent(eventType) {
+            const events = {
+                highReputation: {
+                    text: "Your reputation precedes you. A mysterious figure approaches with an exclusive offer.",
+                    choices: [
+                        {
+                            text: "Accept the elite mission",
+                            action: () => {
+                                gameState.storyMemory.currentMission = {
+                                    type: "Elite Contract",
+                                    client: "The Broker",
+                                    location: "Cloud District",
+                                    complication: "Double Cross",
+                                    stage: 0,
+                                    data: {
+                                        stages: ["infiltrate", "negotiate", "combat", "escape"],
+                                        rewards: { credits: [5000, 10000], xp: [200, 400], items: ["Legendary Cyberdeck"] },
+                                        requiredSkills: ["charisma", "combat"]
+                                    }
+                                };
+                                startMission();
+                            }
+                        },
+                        {
+                            text: "Decline respectfully",
+                            action: () => continueStory()
+                        }
+                    ]
+                },
+                corporateNemesis: {
+                    text: "Arasaka Corp has marked you as a threat. Corporate assassins have been dispatched.",
+                    choices: [
+                        {
+                            text: "Stand and fight",
+                            action: () => initiateCombat("Arasaka Death Squad", { hp: 100, damage: 25, defense: 15 })
+                        },
+                        {
+                            text: "Go underground",
+                            action: () => {
+                                modifyStats({ streetCred: -5, factions: { "Underground": 3 } });
+                                showNotification("You disappear into the shadows...");
+                                continueStory();
+                            }
+                        }
+                    ]
+                }
+            };
+            
+            showScene(events[eventType]);
+        }
+
+        function rest() {
+            const healAmount = Math.min(30, gameState.maxHp - gameState.hp);
+            const energyRestore = Math.min(50, 100 - gameState.energy);
+            
+            modifyStats({ hp: healAmount, energy: energyRestore, credits: -50 });
+            
+            showScene({
+                text: `You find a cheap capsule hotel and rest. (+${healAmount} HP, +${energyRestore} Energy, -¥50)`,
+                choices: [
+                    {
+                        text: "Continue",
+                        action: () => continueStory()
+                    }
+                ]
+            });
+        }
+
+        function gameOver() {
+            showScene({
+                text: `<span style="color: #ff0000">FLATLINED</span><br><br>
+                       You've been zeroed in the streets of NeoTokyo.<br>
+                       Final Stats:<br>
+                       • Level: ${gameState.level}<br>
+                       • Street Cred: ${gameState.streetCred}<br>
+                       • Missions Completed: ${gameState.storyMemory.completedMissions.length}`,
+                ascii: asciiArtLibrary.skull,
+                choices: [
+                    {
+                        text: "Start New Game",
+                        action: () => location.reload()
+                    }
+                ]
+            });
+        }
+
+        // Initialize Game
+        function initGame() {
+            updateDisplay();
+            showScene({
+                text: `<span class="cyber-text">Welcome to NeoTokyo Nights: Redux</span><br><br>
+                       The year is 2087. You're a freelance merc in the sprawling megacity of NeoTokyo. 
+                       Augmented humans, rogue AIs, and corporate overlords battle for control in the neon-lit shadows.<br><br>
+                       Your story begins now...`,
+                ascii: asciiArtLibrary.cityscape,
+                choices: [
+                    {
+                        text: "Begin your journey",
+                        action: () => {
+                            showNotification("Welcome to NeoTokyo!");
+                            continueStory();
+                        }
+                    }
+                ]
+            });
+        }
+
+        // Start the game
+        initGame();
+    </script>
+</body>
+</html>

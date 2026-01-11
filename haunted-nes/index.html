@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a1a1a">
+    <title>Cursed TV</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        #back-button {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background-color: #f00;
+            color: #fff;
+            text-decoration: none;
+            display: inline-block;
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 4px;
+            z-index: 1000;
+        }
+        
+        #back-button:hover {
+            background-color: #c00;
+        }
+    </style>
+</head>
+<body>
+    <div class="nes-container">
+        <div class="nes-console tv-off">
+            <div class="nes-logo">HAUNTED NES</div>
+            <div class="cartridge-slot">
+                <div class="cartridge"></div>
+            </div>
+            <div class="power-led"></div>
+            <div class="controller-ports">
+                <div class="controller-port"></div>
+                <div class="controller-port"></div>
+            </div>
+            <div class="control-buttons">
+                <button class="power-button">POWER</button>
+                <button class="reset-button">RESET</button>
+            </div>
+        </div>
+        <div class="tv-screen tv-off">
+            <div class="channel-content"></div>
+            <div class="static-overlay"></div>
+            <div class="scanlines"></div>
+            <div class="crt-effect"></div>
+            <div class="game-info">
+                <div class="game-title">PRESS POWER</div>
+                <div class="channel-display">--</div>
+            </div>
+        </div>
+        <div class="tv-controls">
+            <div class="control-panel">
+                <div class="game-selector">
+                    <button class="channel-up">NEXT GAME</button>
+                    <button class="channel-down">PREV GAME</button>
+                </div>
+                <div class="control-knobs">
+                    <div class="knob-container">
+                        <div class="knob-label">VOLUME</div>
+                        <div class="volume-knob knob"></div>
+                    </div>
+                    <div class="knob-container">
+                        <div class="knob-label">BRIGHTNESS</div>
+                        <div class="brightness-knob knob"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="nes-controller">
+            <div class="controller-dpad">
+                <div class="dpad-up"></div>
+                <div class="dpad-right"></div>
+                <div class="dpad-down"></div>
+                <div class="dpad-left"></div>
+                <div class="dpad-center"></div>
+            </div>
+            <div class="controller-center">
+                <div class="select-button">SELECT</div>
+                <div class="start-button">START</div>
+            </div>
+            <div class="controller-buttons">
+                <div class="b-button">B</div>
+                <div class="a-button">A</div>
+            </div>
+        </div>
+    </div>
+    
+    <a href="../index.html" id="back-button">Back to Experiments</a>
+    <script src="js/script.js"></script>
+</body>
+</html> 

@@ -1,0 +1,869 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #1a1a1a;
+    font-family: 'Arial', sans-serif;
+    color: #fff;
+    overflow-x: hidden;
+    cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path d="M0,0 L0,12 L4,8 L8,16 L12,14 L8,6 L16,6 Z" fill="%23ff0000"/></svg>'), auto;
+}
+
+/* NES Console Styling */
+.nes-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 1000px;
+    padding: 20px;
+}
+
+/* Add responsive styling for mobile devices */
+@media (max-width: 768px) {
+    .nes-container {
+        padding: 10px;
+    }
+    
+    .nes-console {
+        width: 100%;
+        max-width: 600px;
+        height: auto;
+        min-height: 80px;
+        padding: 8px;
+    }
+    
+    .tv-screen {
+        width: 100% !important;
+        height: auto !important;
+        aspect-ratio: 4/3;
+        border-width: 12px !important;
+    }
+    
+    .tv-controls {
+        width: 100% !important;
+        max-width: 600px;
+    }
+    
+    .control-panel {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .game-selector {
+        margin-bottom: 15px;
+        width: 100%;
+    }
+    
+    .channel-up, .channel-down {
+        width: 100%;
+        margin-bottom: 5px;
+        padding: 12px !important;
+        font-size: 14px !important;
+    }
+    
+    .control-knobs {
+        width: 100%;
+        justify-content: space-around;
+    }
+    
+    .nes-controller {
+        width: 100%;
+        max-width: 380px;
+        height: auto;
+        min-height: 100px;
+        padding: 15px;
+    }
+    
+    .controller-dpad {
+        transform: scale(0.9);
+    }
+    
+    .controller-buttons {
+        transform: scale(0.9);
+    }
+    
+    /* Make controller buttons touch-friendly */
+    .dpad-up, .dpad-right, .dpad-down, .dpad-left, 
+    .a-button, .b-button, .select-button, .start-button {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .select-button, .start-button {
+        height: 15px;
+        min-height: 30px;
+        width: 50px;
+    }
+    
+    .a-button, .b-button {
+        width: 44px;
+        height: 44px;
+    }
+}
+
+.nes-console {
+    width: 600px;
+    height: 120px;
+    background-color: #8a8a8a;
+    border-radius: 6px;
+    position: relative;
+    margin-bottom: 15px;
+    box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 15px;
+    box-sizing: border-box;
+    border: 2px solid #707070;
+}
+
+.nes-logo {
+    font-family: monospace;
+    font-weight: bold;
+    color: #383838;
+    font-size: 16px;
+    align-self: center;
+    margin-bottom: 5px;
+    letter-spacing: 1px;
+}
+
+.cartridge-slot {
+    width: 500px;
+    height: 25px;
+    background-color: #202020;
+    margin: 0 auto;
+    position: relative;
+    border-radius: 3px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.cartridge {
+    width: 450px;
+    height: 18px;
+    background-color: #3a3a3a;
+    transform: translateY(-5px);
+    border-radius: 2px;
+    transition: transform 0.5s;
+}
+
+.tv-on .cartridge {
+    transform: translateY(-15px);
+}
+
+.power-led {
+    width: 8px;
+    height: 8px;
+    background-color: #500;
+    border-radius: 50%;
+    position: absolute;
+    top: 80px;
+    left: 50px;
+    transition: background-color 0.3s;
+}
+
+.tv-on .power-led {
+    background-color: #f00;
+    box-shadow: 0 0 5px #f00;
+}
+
+.controller-ports {
+    display: flex;
+    position: absolute;
+    bottom: 10px;
+    left: 120px;
+    gap: 30px;
+}
+
+.controller-port {
+    width: 20px;
+    height: 12px;
+    background-color: #202020;
+    border-radius: 2px;
+}
+
+.control-buttons {
+    position: absolute;
+    bottom: 10px;
+    right: 30px;
+    display: flex;
+    gap: 15px;
+}
+
+.power-button, .reset-button {
+    width: 30px;
+    height: 15px;
+    background-color: #d00;
+    color: #fff;
+    font-size: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    border-radius: 2px;
+    box-shadow: 0 2px 0 #900;
+}
+
+.power-button:active, .reset-button:active {
+    transform: translateY(2px);
+    box-shadow: none;
+}
+
+/* TV Screen for NES Display */
+.tv-screen {
+    width: 600px;
+    height: 480px;
+    background-color: #000;
+    border: 18px solid #333;
+    position: relative;
+    overflow: hidden;
+    border-radius: 15px;
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.8);
+    transition: filter 0.5s;
+}
+
+.tv-screen.tv-off {
+    background-color: #111;
+}
+
+.scanlines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.03) 50%,
+        rgba(0, 0, 0, 0.1) 50%
+    );
+    background-size: 100% 4px;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0.4;
+}
+
+.crt-effect {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+        ellipse at center,
+        transparent 0%,
+        rgba(0, 0, 0, 0.2) 80%,
+        rgba(0, 0, 0, 0.5) 100%
+    );
+    z-index: 3;
+    pointer-events: none;
+}
+
+.static-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('data:image/png;base64,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');
+    opacity: 0.1;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.channel-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
+
+.tv-controls {
+    width: 600px;
+    background-color: #555;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 15px;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+}
+
+.control-panel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.game-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.channel-up, .channel-down {
+    padding: 8px 12px;
+    background-color: #333;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: monospace;
+    border-radius: 4px;
+    font-weight: bold;
+    box-shadow: 0 2px 0 #222;
+}
+
+.channel-up:active, .channel-down:active {
+    transform: translateY(2px);
+    box-shadow: none;
+}
+
+.control-knobs {
+    display: flex;
+    gap: 20px;
+}
+
+.knob-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.knob-label {
+    font-size: 10px;
+    margin-bottom: 5px;
+    font-family: monospace;
+}
+
+.knob {
+    width: 30px;
+    height: 30px;
+    background-color: #333;
+    border-radius: 50%;
+    position: relative;
+    cursor: pointer;
+}
+
+.knob::after {
+    content: "";
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    width: 2px;
+    height: 10px;
+    background-color: #fff;
+    transform: translateX(-50%);
+}
+
+.game-info {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    z-index: 5;
+    color: rgba(255, 255, 255, 0.8);
+    font-family: monospace;
+    font-size: 12px;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+}
+
+.channel-display {
+    color: #0f0;
+    font-weight: bold;
+}
+
+.exit-fullscreen-hint {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.tv-screen.fullscreen-mode .exit-fullscreen-hint {
+    opacity: 0.8;
+}
+
+.tv-screen.fullscreen-mode .exit-fullscreen-hint:hover {
+    opacity: 0.3;
+}
+
+/* NES Controller */
+.nes-controller {
+    width: 450px;
+    height: 150px;
+    background-color: #333;
+    border-radius: 15px 15px 75px 75px;
+    position: relative;
+    margin-top: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 30px;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+}
+
+.controller-dpad {
+    width: 120px;
+    height: 120px;
+    position: relative;
+}
+
+.dpad-up, .dpad-right, .dpad-down, .dpad-left {
+    width: 38px;
+    height: 38px;
+    background-color: #222;
+    position: absolute;
+}
+
+.dpad-center {
+    width: 38px;
+    height: 38px;
+    background-color: #222;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.dpad-up {
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 5px 5px 0 0;
+}
+
+.dpad-right {
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    border-radius: 0 5px 5px 0;
+}
+
+.dpad-down {
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 0 0 5px 5px;
+}
+
+.dpad-left {
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    border-radius: 5px 0 0 5px;
+}
+
+.controller-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+
+.select-button, .start-button {
+    width: 60px;
+    height: 15px;
+    background-color: #222;
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+    color: #777;
+}
+
+.controller-buttons {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    align-items: center;
+}
+
+.a-button, .b-button {
+    width: 45px;
+    height: 45px;
+    background-color: #a00;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    color: #fff;
+    font-size: 18px;
+}
+
+/* 8-bit aesthetic for games */
+.nes-pixel-art {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+
+/* Animation for changing channels */
+.channel-changing {
+    animation: channel-change 1s;
+}
+
+@keyframes channel-change {
+    0% { transform: scale(1); filter: brightness(1); }
+    10% { transform: scale(0.98); filter: brightness(0.8); }
+    20% { transform: scale(1.02); filter: brightness(1.2); }
+    30% { transform: scale(0.98); filter: brightness(0.7); }
+    100% { transform: scale(1); filter: brightness(1); }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 600px) {
+    .nes-container {
+        transform: scale(0.8);
+        transform-origin: top center;
+    }
+    
+    .nes-console {
+        max-width: 400px;
+    }
+    
+    .tv-controls {
+        max-width: 400px;
+    }
+    
+    .cartridge-slot {
+        width: 90%;
+    }
+    
+    .cartridge {
+        width: 90%;
+    }
+}
+
+@media (max-width: 480px) {
+    .nes-container {
+        transform: scale(0.7);
+        transform-origin: top center;
+    }
+    
+    .control-panel {
+        flex-direction: column;
+    }
+    
+    .game-selector {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+}
+
+/* Advanced CRT and Horror Effects */
+
+/* Enhanced phosphor persistence effect */
+.tv-screen::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at center, 
+        rgba(0, 255, 0, 0.02) 0%, 
+        rgba(0, 255, 0, 0.01) 20%, 
+        transparent 70%);
+    pointer-events: none;
+    z-index: 3;
+    animation: phosphor-fade 2s infinite alternate;
+}
+
+@keyframes phosphor-fade {
+    0% { opacity: 0.3; }
+    100% { opacity: 0.8; }
+}
+
+/* Screen burn-in effect */
+.tv-screen::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.01) 20%, transparent 21%, rgba(255,255,255,0.01) 40%, transparent 41%),
+        radial-gradient(circle at 30% 40%, rgba(255,255,255,0.02) 0%, transparent 50%),
+        radial-gradient(circle at 70% 60%, rgba(255,255,255,0.015) 0%, transparent 30%);
+    pointer-events: none;
+    z-index: 4;
+    opacity: 0.6;
+}
+
+/* Enhanced scanlines with more authentic CRT feel */
+.scanlines {
+    background: linear-gradient(transparent 0%, rgba(0, 255, 0, 0.03) 50%, transparent 100%);
+    background-size: 100% 4px;
+    animation: scanline-flicker 0.1s linear infinite, scanline-roll 8s linear infinite;
+}
+
+@keyframes scanline-flicker {
+    0% { opacity: 1; }
+    98% { opacity: 1; }
+    99% { opacity: 0.8; }
+    100% { opacity: 1; }
+}
+
+@keyframes scanline-roll {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 100%; }
+}
+
+/* Enhanced CRT curvature and distortion */
+.crt-effect {
+    background: radial-gradient(ellipse at center, transparent 70%, rgba(0, 0, 0, 0.2) 100%);
+    border-radius: 10px;
+    transform: perspective(1000px) rotateX(2deg);
+    filter: contrast(1.1) brightness(1.05);
+}
+
+/* Haunted TV glow effect */
+.tv-on .tv-screen {
+    box-shadow: 
+        0 0 20px rgba(0, 255, 0, 0.3),
+        0 0 40px rgba(0, 255, 0, 0.2),
+        0 0 80px rgba(0, 255, 0, 0.1),
+        inset 0 0 20px rgba(0, 0, 0, 0.2);
+    animation: haunted-glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes haunted-glow {
+    0% { 
+        box-shadow: 
+            0 0 20px rgba(0, 255, 0, 0.3),
+            0 0 40px rgba(0, 255, 0, 0.2),
+            0 0 80px rgba(0, 255, 0, 0.1),
+            inset 0 0 20px rgba(0, 0, 0, 0.2);
+    }
+    50% {
+        box-shadow: 
+            0 0 25px rgba(255, 0, 0, 0.2),
+            0 0 50px rgba(255, 0, 0, 0.15),
+            0 0 100px rgba(255, 0, 0, 0.1),
+            inset 0 0 25px rgba(0, 0, 0, 0.3);
+    }
+    100% { 
+        box-shadow: 
+            0 0 30px rgba(0, 0, 255, 0.2),
+            0 0 60px rgba(0, 0, 255, 0.15),
+            0 0 120px rgba(0, 0, 255, 0.1),
+            inset 0 0 30px rgba(0, 0, 0, 0.4);
+    }
+}
+
+/* Static overlay enhancement */
+.static-overlay {
+    background-image: 
+        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><defs><pattern id="static" width="2" height="2" patternUnits="userSpaceOnUse"><rect width="1" height="1" fill="%23fff" opacity="0.1"/><rect x="1" y="1" width="1" height="1" fill="%23000" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23static)"/></svg>');
+    animation: static-noise 0.2s infinite linear, static-flicker 4s infinite ease-in-out;
+}
+
+@keyframes static-noise {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(1px, -1px); }
+    50% { transform: translate(-1px, 1px); }
+    75% { transform: translate(1px, 1px); }
+    100% { transform: translate(-1px, -1px); }
+}
+
+@keyframes static-flicker {
+    0%, 90%, 100% { opacity: 0; }
+    92%, 98% { opacity: 0.15; }
+}
+
+/* Power LED enhancement */
+.power-led {
+    transition: all 0.3s ease;
+    animation: led-pulse 2s infinite ease-in-out;
+}
+
+@keyframes led-pulse {
+    0%, 100% { 
+        box-shadow: 0 0 5px currentColor;
+        filter: brightness(1);
+    }
+    50% { 
+        box-shadow: 0 0 15px currentColor, 0 0 25px currentColor;
+        filter: brightness(1.5);
+    }
+}
+
+/* Console vibration effect for haunted mode */
+.nes-console.haunted-shake {
+    animation: haunted-vibration 0.3s infinite;
+}
+
+@keyframes haunted-vibration {
+    0%, 100% { transform: translateX(0); }
+    10% { transform: translateX(-2px) rotate(-0.5deg); }
+    20% { transform: translateX(2px) rotate(0.5deg); }
+    30% { transform: translateX(-1px) rotate(-0.2deg); }
+    40% { transform: translateX(1px) rotate(0.2deg); }
+    50% { transform: translateX(-2px) rotate(-0.3deg); }
+    60% { transform: translateX(2px) rotate(0.3deg); }
+    70% { transform: translateX(-1px) rotate(-0.1deg); }
+    80% { transform: translateX(1px) rotate(0.1deg); }
+    90% { transform: translateX(-1px) rotate(-0.1deg); }
+}
+
+/* Enhanced controller glow */
+.nes-controller {
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.nes-controller:hover {
+    box-shadow: 
+        0 5px 15px rgba(0, 0, 0, 0.4),
+        0 0 20px rgba(255, 0, 0, 0.1);
+}
+
+/* Button press effects */
+.dpad-up:active, .dpad-right:active, .dpad-down:active, .dpad-left:active,
+.a-button:active, .b-button:active, .select-button:active, .start-button:active {
+    transform: scale(0.95);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+    filter: brightness(0.8);
+}
+
+/* Cartridge glow when inserted */
+.tv-on .cartridge {
+    box-shadow: 0 -2px 10px rgba(0, 255, 0, 0.3);
+    background: linear-gradient(to bottom, #4a4a4a, #2a2a2a);
+}
+
+/* Enhanced channel info display */
+.game-info {
+    background: rgba(0, 0, 0, 0.7);
+    padding: 5px 10px;
+    border-radius: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(2px);
+}
+
+.channel-display {
+    text-shadow: 0 0 5px currentColor;
+    animation: channel-glow 1s ease-in-out infinite alternate;
+}
+
+@keyframes channel-glow {
+    0% { text-shadow: 0 0 5px currentColor; }
+    100% { text-shadow: 0 0 10px currentColor, 0 0 15px currentColor; }
+}
+
+/* Atmospheric background enhancement */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 20% 80%, rgba(255, 0, 0, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(0, 0, 255, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(0, 255, 0, 0.02) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: -1;
+    animation: atmospheric-shift 20s ease-in-out infinite;
+}
+
+@keyframes atmospheric-shift {
+    0%, 100% { opacity: 0.5; }
+    33% { opacity: 0.8; }
+    66% { opacity: 0.3; }
+}
+
+/* Enhanced fullscreen mode */
+.tv-screen.fullscreen-mode {
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.tv-screen.fullscreen-mode .crt-effect {
+    transform: none;
+    border-radius: 0;
+}
+
+/* Glitch effects for corruption */
+.channel-corruption {
+    animation: digital-corruption 0.5s infinite;
+}
+
+@keyframes digital-corruption {
+    0% { 
+        filter: hue-rotate(0deg) saturate(1) brightness(1);
+        transform: translate(0);
+    }
+    20% { 
+        filter: hue-rotate(90deg) saturate(3) brightness(1.2);
+        transform: translate(2px, 0);
+    }
+    40% { 
+        filter: hue-rotate(180deg) saturate(0) brightness(0.8);
+        transform: translate(-2px, 1px);
+    }
+    60% { 
+        filter: hue-rotate(270deg) saturate(2) brightness(1.5);
+        transform: translate(1px, -1px);
+    }
+    80% { 
+        filter: hue-rotate(360deg) saturate(1.5) brightness(0.9);
+        transform: translate(-1px, 2px);
+    }
+    100% { 
+        filter: hue-rotate(0deg) saturate(1) brightness(1);
+        transform: translate(0);
+    }
+}
+
+/* Loading/booting effect */
+.tv-screen.booting {
+    animation: crt-boot 3s ease-out;
+}
+
+@keyframes crt-boot {
+    0% {
+        filter: brightness(0);
+        transform: scaleY(0.1);
+    }
+    50% {
+        filter: brightness(2);
+        transform: scaleY(0.5);
+    }
+    80% {
+        filter: brightness(1.5);
+        transform: scaleY(0.9);
+    }
+    100% {
+        filter: brightness(1);
+        transform: scaleY(1);
+    }
+} 

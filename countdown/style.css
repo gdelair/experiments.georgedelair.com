@@ -1,0 +1,276 @@
+body {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  position: absolute;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  background: #1a1a1a;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  padding-top: 1vh;
+  margin: 0;
+}
+
+/* Shared font family for consistency */
+.font-sans {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+#clock {
+  /* Responsive font sizing - scales with viewport width */
+  font-size: calc(14px + 2.2vw); /* Slightly increased font size */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  width: 100%;
+  max-width: 90vw;
+  padding: 5vh 0; /* More vertical padding */
+  box-sizing: border-box;
+}
+
+#digital {
+  perspective: 1000px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1ch;
+  height: auto;
+  margin-top: 2ch;
+  margin-bottom: 2ch;
+  width: 100%;
+}
+
+#digital::after {
+  content: "";
+  display: block;
+  position: absolute;
+  top: -150%;
+  left: -50%;
+  width: 200%;
+  height: 400%;
+  background-image: linear-gradient(180deg, #1a1a1a 10%, #1a1a1a66 30%, #1a1a1a00 40%, #1a1a1a00 60%,#1a1a1a66 70%, #1a1a1a 90%);
+}
+
+.slot {
+  position: relative;
+  width: 1ch;
+  height: 2ch;
+  color: #fff;
+  display: flex;
+  transform-style: preserve-3d;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 2em;
+}
+
+.colon {
+  transform: translateZ(3ch);
+}
+
+.numbers > div {
+  position: absolute;
+  transform-style: preserve-3d;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backface-visibility: hidden;
+  transform-origin: center center 0px;
+}
+
+/* Removed #parameters styles */
+/* Removed fieldset styles */
+/* Removed #controls styles */
+
+/* Settings Gear Styles */
+#settings-gear {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  font-size: calc(16px + 1vw); /* Responsive sizing */
+  cursor: pointer;
+  user-select: none;
+  color: #ccc;
+  transition: transform 0.3s ease;
+  z-index: 100;
+}
+
+#settings-gear:hover {
+  transform: rotate(90deg);
+  color: #fff;
+}
+
+/* Settings Menu Styles */
+#settings-menu {
+  position: fixed;
+  bottom: 60px;
+  right: 20px;
+  background-color: #2a2a2a;
+  color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  opacity: 1;
+  transform: translateY(0);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-width: 90vw;
+  width: 250px; /* Reduced width since we have fewer options */
+}
+
+#settings-menu.hidden {
+  opacity: 0;
+  transform: translateY(20px);
+  pointer-events: none;
+}
+
+#settings-menu h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.setting-item {
+  display: flex;
+  flex-direction: column;
+}
+
+#settings-menu label {
+  display: block;
+  margin-bottom: 5px;
+  color: #ccc;
+}
+
+#settings-menu select,
+#settings-menu input[type="time"] {
+  width: 100%;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #555;
+  background-color: #333;
+  color: #fff;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+#countdown-title {
+  color: #ffffff;
+  font-size: calc(18px + 2vw); /* Responsive sizing */
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 3vh;
+  width: 100%;
+  text-shadow: 0 0 15px rgba(255, 255, 255, 0.6), 0 0 30px rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.05em;
+  position: relative;
+  z-index: 5;
+  opacity: 1;
+  padding: 0.3em 0;
+}
+
+.digit-display {
+  display: flex;
+  gap: 1ch;
+  margin-bottom: 0;  /* Reduced since no labels */
+  justify-content: center;
+  flex-wrap: nowrap;
+  padding-bottom: 2ch; /* Add some bottom padding since labels are gone */
+}
+
+/* Hide the labels-container since we're not using it anymore */
+.labels-container {
+  display: none;
+}
+
+/* Adjust label placement */
+.hours-tens, .hours-ones {
+  margin-right: 1ch;
+}
+
+.minutes-tens, .minutes-ones {
+  margin-right: 1ch;
+}
+
+.seconds-tens, .seconds-ones {
+  margin-right: 1ch;
+}
+
+/* Media Queries for better responsiveness */
+/* Mobile portrait */
+@media (max-width: 480px) {
+  #clock {
+    font-size: calc(3px + 2.5vw);
+  }
+  
+  .labels-container {
+    font-size: 0.6em;
+    letter-spacing: 0;
+  }
+  
+  #countdown-title {
+    font-size: calc(16px + 2vw);
+    margin-bottom: 2vh;
+  }
+}
+
+/* Mobile landscape */
+@media (max-height: 480px) and (orientation: landscape) {
+  body {
+    padding-top: 1vh;
+  }
+  
+  #clock {
+    font-size: calc(6px + 1.8vw);
+    padding: 2vh 0;
+  }
+  
+  #digital {
+    margin-top: 2ch;
+    margin-bottom: 2ch;
+  }
+  
+  #countdown-title {
+    font-size: calc(14px + 1.5vw);
+    margin-bottom: 1vh;
+  }
+}
+
+/* Large screens */
+@media (min-width: 1600px) {
+  #clock {
+    font-size: calc(16px + 2.4vw);
+    max-width: 80vw;
+  }
+  #countdown-title {
+    font-size: calc(32px + 1.5vw);
+    margin-bottom: 14vh;
+  }
+}
+
+/* Extra large screens (TV) */
+@media (min-width: 2560px) {
+  #clock {
+    font-size: calc(24px + 2.2vw);
+  }
+  
+  #countdown-title {
+    font-size: calc(32px + 1.5vw);
+    margin-bottom: 14vh;
+  }
+}
+
+/* Improve appearance of the time input */
+#target-time {
+  font-size: 1.2em;
+  text-align: center;
+  height: 40px;
+  cursor: pointer;
+}

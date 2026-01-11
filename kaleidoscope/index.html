@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kaleidoscope - Interactive Pattern Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+        }
+        
+        .controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .controls h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .control-group {
+            margin-bottom: 10px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        input[type="range"] {
+            width: 150px;
+            margin-bottom: 5px;
+        }
+        
+        input[type="color"] {
+            width: 40px;
+            height: 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 10px;
+            margin-bottom: 5px;
+        }
+        
+        button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        button.active {
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+        
+        .info {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .back-button {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: #ff4444;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .back-button:hover {
+            background: #ff6666;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 68, 68, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h3>Kaleidoscope Controls</h3>
+        
+        <div class="control-group">
+            <label>Segments: <span id="segmentValue">8</span></label>
+            <input type="range" id="segments" min="3" max="16" value="8">
+        </div>
+        
+        <div class="control-group">
+            <label>Trail Length: <span id="trailValue">50</span></label>
+            <input type="range" id="trailLength" min="10" max="200" value="50">
+        </div>
+        
+        <div class="control-group">
+            <label>Brush Size: <span id="brushValue">10</span></label>
+            <input type="range" id="brushSize" min="1" max="50" value="10">
+        </div>
+        
+        <div class="control-group">
+            <label>Canvas Size:</label>
+            <button id="fullscreen" class="active">Fullscreen</button>
+            <button id="size2160">2160x2160</button>
+            <button id="size1080">1080x1080</button>
+        </div>
+        
+        <div class="control-group">
+            <label>Color Mode:</label>
+            <button id="rainbow" class="active">Rainbow</button>
+            <button id="custom">Custom</button>
+            <input type="color" id="colorPicker" value="#ff00ff" style="display: none;">
+        </div>
+        
+        <div class="control-group">
+            <button id="clearCanvas">Clear Canvas</button>
+            <button id="saveImage">Save Image</button>
+        </div>
+    </div>
+    
+    <div class="info">
+        Move your mouse to create patterns<br>
+        Click and drag for continuous drawing
+    </div>
+    
+    <a href="../index.html" class="back-button">Back to Experiments</a>
+    
+    <script src="kaleidoscope.js"></script>
+</body>
+</html> 
