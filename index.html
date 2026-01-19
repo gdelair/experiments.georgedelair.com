@@ -3,152 +3,505 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>George DeLair</title>
+    <title>George DeLair - Experiments</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            line-height: 1.2;
-        }
-        header {
-            margin-bottom: 40px;
-        }
-        h1 {
-            font-size: 1.5em;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .experiment {
-            border-bottom: 1px solid #e0e0e0;
-            padding: 20px 0;
-        }
-        .experiment h2 {
-            font-size: 2.5em;
-            font-weight: bold;
-            margin-bottom: 5px;
-            line-height: 1.1;
-        }
-        .experiment a {
-            text-decoration: none;
-            color: inherit;
-        }
-        .experiment a:hover {
-            text-decoration: underline;
-        }
-        .meta {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.9em;
-            color: #666;
-        }
-        .date, .category {
-            margin: 0;
+        /* ═══════════════════════════════════════════════════════════════
+           MONOSUITE DESIGN SYSTEM
+           ═══════════════════════════════════════════════════════════════ */
+
+        :root {
+            /* Backgrounds */
+            --bg-primary: #faf9f7;
+            --bg-secondary: #f0ede8;
+            --bg-tertiary: #e8e4dd;
+
+            /* Text */
+            --text-primary: #2c2c2c;
+            --text-secondary: #6b6b6b;
+            --text-muted: #8a8a8a;
+
+            /* Accent Colors */
+            --accent: #c45d3e;
+            --accent-hover: #a84d32;
+            --accent-secondary: #2d5a4a;
+            --accent-secondary-hover: #234a3c;
+
+            /* Borders */
+            --border-color: #e4e0db;
+            --border-subtle: #ebe8e3;
+
+            /* Surfaces */
+            --toolbar-bg: rgba(250, 249, 247, 0.92);
+
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(44, 44, 44, 0.04);
+            --shadow-md: 0 4px 12px rgba(44, 44, 44, 0.08);
+            --shadow-lg: 0 12px 32px rgba(44, 44, 44, 0.12);
+
+            /* Focus Ring */
+            --focus-ring: 0 0 0 3px rgba(196, 93, 62, 0.15);
+
+            /* Typography */
+            --font-display: 'Fraunces', Georgia, serif;
+            --font-body: 'Source Serif 4', Georgia, serif;
+            --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+            --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+            /* Animation */
+            --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+            --duration-fast: 150ms;
+            --duration-normal: 250ms;
+
+            /* Radius */
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 10px;
+            --radius-xl: 14px;
         }
 
+        [data-theme="dark"] {
+            --bg-primary: #1c1b19;
+            --bg-secondary: #282623;
+            --bg-tertiary: #333028;
+
+            --text-primary: #e8e4de;
+            --text-secondary: #9a958c;
+            --text-muted: #6e6a62;
+
+            --accent: #e07a5f;
+            --accent-hover: #eb8d74;
+            --accent-secondary: #5fa386;
+            --accent-secondary-hover: #6fb594;
+
+            --border-color: #3a3632;
+            --border-subtle: #302d29;
+
+            --toolbar-bg: rgba(28, 27, 25, 0.92);
+
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.4);
+
+            --focus-ring: 0 0 0 3px rgba(224, 122, 95, 0.2);
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-body);
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: var(--bg-primary);
+            transition: background-color var(--duration-normal) var(--ease-out),
+                        color var(--duration-normal) var(--ease-out);
+        }
+
+        ::selection {
+            background: var(--accent);
+            color: white;
+        }
+
+        .page-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 32px;
+            background: var(--toolbar-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .brand {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--accent);
+            letter-spacing: -0.02em;
+            text-decoration: none;
+        }
+
+        .brand:hover {
+            color: var(--accent-hover);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-family: var(--font-ui);
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--duration-fast) var(--ease-out);
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        main {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 48px 32px 96px;
+        }
+
+        .page-title {
+            font-family: var(--font-display);
+            font-size: 2.4em;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            font-size: 1.1em;
+            color: var(--text-secondary);
+            margin-bottom: 48px;
+        }
+
+        .experiments-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .experiment {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            transition: all var(--duration-fast) var(--ease-out);
+        }
+
+        .experiment:hover {
+            background: var(--bg-tertiary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .experiment-title {
+            font-family: var(--font-display);
+            font-size: 1.5em;
+            font-weight: 600;
+            line-height: 1.25;
+            letter-spacing: -0.01em;
+            margin-bottom: 8px;
+        }
+
+        .experiment-title a {
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: color var(--duration-fast) var(--ease-out);
+        }
+
+        .experiment-title a:hover {
+            color: var(--accent);
+        }
+
+        .external-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .external-icon {
+            font-size: 0.7em;
+            opacity: 0.6;
+        }
+
+        .experiment-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: var(--font-ui);
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .experiment-date {
+            font-family: var(--font-mono);
+            font-size: 12px;
+        }
+
+        .experiment-category {
+            padding: 4px 10px;
+            background: var(--bg-primary);
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .experiment.featured {
+            border-left: 4px solid var(--accent);
+        }
+
+        .experiment.featured .experiment-category {
+            background: var(--accent);
+            color: white;
+        }
+
+        footer {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 32px;
+            border-top: 1px solid var(--border-subtle);
+            text-align: center;
+        }
+
+        .footer-text {
+            font-family: var(--font-ui);
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .footer-link {
+            font-family: var(--font-ui);
+            font-size: 13px;
+            color: var(--accent);
+            text-decoration: none;
+            transition: color var(--duration-fast) var(--ease-out);
+        }
+
+        .footer-link:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .page-header {
+                padding: 12px 16px;
+            }
+
+            main {
+                padding: 32px 16px 64px;
+            }
+
+            .page-title {
+                font-size: 1.8em;
+            }
+
+            .experiment {
+                padding: 20px;
+            }
+
+            .experiment-title {
+                font-size: 1.25em;
+            }
+
+            .experiment-meta {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+        }
     </style>
 </head>
 <body>
-    <header>
-        <h1>GEORGE DELAIR - Experiments</h1>
+    <header class="page-header">
+        <a href="https://georgedelair.com" class="brand">George DeLair</a>
+        <div class="header-actions">
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+                <span id="themeLabel">Light</span>
+            </button>
+        </div>
     </header>
+
     <main>
-        <div class="experiment">
-            <h2><a href="https://monodraft.app" target="_blank" rel="noopener">MonoDraft <span style="font-size: 0.7em; opacity: 0.7;">↗</span></a></h2>
-            <div class="meta">
-                <p class="date">January 12 · 26</p>
-                <p class="category">Productivity</p>
-            </div>
-        </div>
-        <div class="experiment">
-            <h2><a href="synthetic-dreams/index.html">Synthetic Dreams</a></h2>
-            <div class="meta">
-                <p class="date">January 11 · 26</p>
-                <p class="category">Interactive</p>
-            </div>
-        </div>
-        <div class="experiment">
-            <h2><a href="liquid-poetry/index.html">Liquid Poetry Generator</a></h2>
-            <div class="meta">
-                <p class="date">January 11 · 26</p>
-                <p class="category">Generative Art</p>
-            </div>
-        </div>
-        <div class="experiment">
-            <h2><a href="chatgpt-5-2-snake/index.html">Neon Snake</a></h2>
-            <div class="meta">
-                <p class="date">December 10 · 25</p>
-                <p class="category">Interactive</p>
-            </div>
-        </div>
-        <div class="experiment">
-            <h2><a href="neotokyo2/index.html">NeoTokyo Nights: Redux</a></h2>
-            <div class="meta">
-                <p class="date">May 22 · 25</p>
-                <p class="category">Interactive</p>
-            </div>
-        </div>
+        <h1 class="page-title">Experiments</h1>
+        <p class="page-subtitle">A collection of interactive projects, visualizations, and creative coding explorations.</p>
 
-        <div class="experiment">
-            <h2><a href="universe-sim/index.html">Universe Simulator</a></h2>
-            <div class="meta">
-                <p class="date">May 22 · 25</p>
-                <p class="category">Interactive</p>
-            </div>
-        </div>
+        <div class="experiments-list">
+            <article class="experiment featured">
+                <h2 class="experiment-title">
+                    <a href="https://monodraft.app" target="_blank" rel="noopener" class="external-link">
+                        MonoDraft <span class="external-icon">&#8599;</span>
+                    </a>
+                </h2>
+                <div class="experiment-meta">
+                    <span class="experiment-date">January 12, 2026</span>
+                    <span class="experiment-category">Productivity</span>
+                </div>
+            </article>
 
-        <div class="experiment">
-            <h2><a href="kaleidoscope/index.html">Interactive Kaleidoscope</a></h2>
-            <div class="meta">
-                <p class="date">May 22 · 25</p>
-                <p class="category">Interactive</p>
-            </div>
-        </div>
+            <article class="experiment">
+                <h2 class="experiment-title">
+                    <a href="synthetic-dreams/index.html">Synthetic Dreams</a>
+                </h2>
+                <div class="experiment-meta">
+                    <span class="experiment-date">January 11, 2026</span>
+                    <span class="experiment-category">Interactive</span>
+                </div>
+            </article>
 
-        <div class="experiment">
-            <h2><a href="lego-playground/lego-playground.html">LEGO Playground 3D</a></h2>
-            <div class="meta">
-                <p class="date">April 22 · 25</p>
-                <p class="category">Interactive</p>
-            </div>
-        </div>
+            <article class="experiment">
+                <h2 class="experiment-title">
+                    <a href="liquid-poetry/index.html">Liquid Poetry Generator</a>
+                </h2>
+                <div class="experiment-meta">
+                    <span class="experiment-date">January 11, 2026</span>
+                    <span class="experiment-category">Generative Art</span>
+                </div>
+            </article>
 
-        <div class="experiment">
-            <h2><a href="tv/index.html">Random TV</a></h2>
-            <div class="meta">
-                <p class="date">April 05 · 25</p>
-                <p class="category">Interactive</p>
-            </div>
-        </div>
-    
-        <div class="experiment">
-            <h2><a href="haunted-nes/index.html">Cursed NES</a></h2>
-            <div class="meta">
-                <p class="date">April 04 · 25</p>
-                <p class="category">Animation</p>
-            </div>
-        </div>
-        
-        <div class="experiment">
-            <h2><a href="countdown/index.html">Countdown Animation</a></h2>
-            <div class="meta">
-                <p class="date">April 04 · 25</p>
-                <p class="category">Animation</p>
-            </div>
-        </div>
-        
-        <div class="experiment">
-            <h2><a href="claude-experiments/index.html">Anthropic Claude 3.5 Haiku Experiments</a></h2>
-            <div class="meta">
-                <p class="date">July 04 · 24</p>
-                <p class="category">AI Experiments</p>
-            </div>
+            <article class="experiment">
+                <h2 class="experiment-title">
+                    <a href="chatgpt-5-2-snake/index.html">Neon Snake</a>
+                </h2>
+                <div class="experiment-meta">
+                    <span class="experiment-date">December 10, 2025</span>
+                    <span class="experiment-category">Interactive</span>
+                </div>
+            </article>
+
+            <article class="experiment">
+                <h2 class="experiment-title">
+                    <a href="neotokyo2/index.html">NeoTokyo Nights: Redux</a>
+                </h2>
+                <div class="experiment-meta">
+                    <span class="experiment-date">May 22, 2025</span>
+                    <span class="experiment-category">Interactive</span>
+                </div>
+            </article>
+
+            <article class="experiment">
+                <h2 class="experiment-title">
+                    <a href="universe-sim/index.html">Universe Simulator</a>
+                </h2>
+                <div class="experiment-meta">
+                    <span class="experiment-date">May 22, 2025</span>
+                    <span class="experiment-category">Interactive</span>
+                </div>
+            </article>
+
+            <article class="experiment">
+                <h2 class="experiment-title">
+                    <a href="kaleidoscope/index.html">Interactive Kaleidoscope</a>
+                </h2>
+                <div class="experiment-meta">
+                    <span class="experiment-date">May 22, 2025</span>
+                    <span class="experiment-category">Interactive</span>
+                </div>
+            </article>
+
+            <article class="experiment">
+                <h2 class="experiment-title">
+                    <a href="lego-playground/lego-playground.html">LEGO Playground 3D</a>
+                </h2>
+                <div class="experiment-meta">
+                    <span class="experiment-date">April 22, 2025</span>
+                    <span class="experiment-category">Interactive</span>
+                </div>
+            </article>
+
+            <article class="experiment">
+                <h2 class="experiment-title">
+                    <a href="tv/index.html">Random TV</a>
+                </h2>
+                <div class="experiment-meta">
+                    <span class="experiment-date">April 5, 2025</span>
+                    <span class="experiment-category">Interactive</span>
+                </div>
+            </article>
+
+            <article class="experiment">
+                <h2 class="experiment-title">
+                    <a href="haunted-nes/index.html">Cursed NES</a>
+                </h2>
+                <div class="experiment-meta">
+                    <span class="experiment-date">April 4, 2025</span>
+                    <span class="experiment-category">Animation</span>
+                </div>
+            </article>
+
+            <article class="experiment">
+                <h2 class="experiment-title">
+                    <a href="countdown/index.html">Countdown Animation</a>
+                </h2>
+                <div class="experiment-meta">
+                    <span class="experiment-date">April 4, 2025</span>
+                    <span class="experiment-category">Animation</span>
+                </div>
+            </article>
+
+            <article class="experiment">
+                <h2 class="experiment-title">
+                    <a href="claude-experiments/index.html">Anthropic Claude 3.5 Haiku Experiments</a>
+                </h2>
+                <div class="experiment-meta">
+                    <span class="experiment-date">July 4, 2024</span>
+                    <span class="experiment-category">AI Experiments</span>
+                </div>
+            </article>
         </div>
     </main>
+
     <footer>
-        <p>© George DeLair</p>
-        <p><a href="https://georgedelair.com" style="color: #666; text-decoration: none;">take me to georgedelair.com</a></p>
+        <p class="footer-text">&copy; George DeLair</p>
+        <a href="https://georgedelair.com" class="footer-link">georgedelair.com</a>
     </footer>
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const label = document.getElementById('themeLabel');
+            if (html.getAttribute('data-theme') === 'dark') {
+                html.removeAttribute('data-theme');
+                label.textContent = 'Light';
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                label.textContent = 'Dark';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Check saved preference or system preference
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.getElementById('themeLabel').textContent = 'Dark';
+        }
+    </script>
 </body>
 </html>
