@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS Beat Machine</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Primary NexusUI source -->
+    <script src="https://cdn.jsdelivr.net/npm/nexusui@2.1.6/dist/NexusUI.js"></script>
+    <!-- Fallback if primary source fails -->
+    <script>
+        if (typeof Nexus === 'undefined') {
+            console.log("Primary NexusUI source failed, trying fallback...");
+            var fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/nexusui/2.0.13/NexusUI.min.js';
+            fallbackScript.onerror = function () {
+                console.log("CDN fallback failed, trying local copy...");
+                var localScript = document.createElement('script');
+                localScript.src = 'libs/NexusUI.min.js';
+                document.head.appendChild(localScript);
+            };
+            document.head.appendChild(fallbackScript);
+        }
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>JS Beat Machine</h1>
+            <div class="controls">
+                <button id="play-button" class="control-button">Play</button>
+                <button id="stop-button" class="control-button">Stop</button>
+                <button id="reset-button" class="control-button">Reset</button>
+                <div class="tempo-container">
+                    <label for="tempo-slider">BPM</label>
+                    <div id="tempo-slider"></div>
+                    <span id="tempo-display">120</span>
+                </div>
+                <div class="master-volume-container">
+                    <label>Master</label>
+                    <div id="master-volume"></div>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="sequencer-container">
+                <div class="tracks">
+                    <!-- Track template - will be created dynamically in JS -->
+                </div>
+            </div>
+
+            <!-- New track controls panel that appears when a track is selected -->
+            <div id="track-controls-panel" class="track-controls-panel">
+                <div class="control-group">
+                    <label>Volume</label>
+                    <div id="selected-track-volume"></div>
+                </div>
+                <div class="control-group">
+                    <label>Reverb</label>
+                    <div id="selected-track-reverb"></div>
+                </div>
+                <div class="control-group">
+                    <label>Delay</label>
+                    <div id="selected-track-delay"></div>
+                </div>
+            </div>
+        </main>
+
+        <section class="help-section">
+            <h2>How to Use</h2>
+            <p>Click on the grid cells to enable/disable steps for each drum sound. Use the controls at the top to play,
+                stop, and adjust tempo.</p>
+            <p>Click on a track to select it and adjust its volume and effects below.</p>
+        </section>
+
+        <footer>
+            <div class="presets">
+                <label for="presets-select">Presets:</label>
+                <select id="presets-select">
+                    <option value="none">Select Preset</option>
+                    <option value="basic-beat">Basic Beat</option>
+                    <option value="hip-hop">Hip Hop</option>
+                    <option value="electro">Electro</option>
+                </select>
+            </div>
+            <div class="save-load">
+                <button id="save-button">Save</button>
+                <button id="load-button">Load</button>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+
+</html>
