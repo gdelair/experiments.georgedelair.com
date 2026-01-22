@@ -1,0 +1,274 @@
+/* CSS Reset */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --primary-color: #2d5fff;
+    --secondary-color: #ff2d5f;
+    --background-color: #121212;
+    --surface-color: #1e1e1e;
+    --text-color: #ffffff;
+    --inactive-color: #333333;
+    --active-step-color: #d9b543;
+    --current-step-color: #5f2dff;
+    --track-height: 60px;
+    --step-size: 40px;
+    --step-gap: 2px;
+    --track-name-width: 120px;
+    --beat-marker-color: rgba(255, 255, 255, 0.15);
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+h1 {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    color: var(--primary-color);
+}
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    padding: 15px;
+    background-color: var(--surface-color);
+    border-radius: 5px;
+}
+
+.control-button {
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.control-button:hover {
+    background-color: var(--secondary-color);
+}
+
+.tempo-container, .master-volume-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+#tempo-display {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.sequencer-container {
+    width: 100%;
+    overflow-x: auto;
+    background-color: var(--surface-color);
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.tracks {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.track {
+    display: flex;
+    height: var(--track-height);
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.track.selected {
+    outline: 2px solid var(--active-step-color);
+}
+
+.track-name {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--track-name-width);
+    min-width: var(--track-name-width);
+    background-color: #000;
+    color: #fff;
+    font-weight: bold;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 10px;
+}
+
+.track-steps {
+    display: flex;
+    flex-grow: 1;
+    padding: 10px;
+    align-items: center;
+}
+
+/* Track controls section that appears below */
+.track-controls-panel {
+    display: none;
+    background-color: #252525;
+    border-radius: 5px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.track-controls-panel.visible {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.control-group label {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    opacity: 0.8;
+}
+
+/* Step buttons container */
+.step-buttons-container {
+    display: flex;
+    gap: var(--step-gap);
+    align-items: center;
+    height: 100%;
+}
+
+.step-container {
+    width: var(--step-size);
+    height: var(--step-size);
+    position: relative;
+}
+
+/* Marker for beat divisions */
+.step-container.beat-start::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background-color: var(--beat-marker-color);
+    z-index: 1;
+}
+
+/* Beat steps will be styled to look like the image */
+.step {
+    width: var(--step-size);
+    height: var(--step-size);
+    border-radius: 3px;
+    background-color: var(--inactive-color);
+    cursor: pointer;
+    transition: background-color 0.15s;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 
+                inset 0 -1px 1px rgba(0, 0, 0, 0.3);
+}
+
+.step.active {
+    background-color: var(--active-step-color);
+    box-shadow: 0 0 5px rgba(217, 181, 67, 0.5);
+}
+
+.step.current {
+    border: 2px solid var(--current-step-color);
+}
+
+.help-section {
+    background-color: var(--surface-color);
+    padding: 20px;
+    border-radius: 5px;
+    margin-bottom: 30px;
+}
+
+.help-section h2 {
+    color: var(--primary-color);
+    margin-bottom: 10px;
+}
+
+footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: var(--surface-color);
+    border-radius: 5px;
+}
+
+.presets, .save-load, .kit-selector {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.kit-selector {
+    margin-right: 20px;
+}
+
+select, button {
+    padding: 8px 15px;
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Loading indicator styling */
+#loading-indicator {
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .controls {
+        flex-direction: column;
+    }
+    
+    .track-controls-panel {
+        flex-direction: column;
+    }
+    
+    footer {
+        flex-direction: column;
+        gap: 15px;
+    }
+} 
