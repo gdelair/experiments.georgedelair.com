@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NightOwl BBS - (504) 555-0199</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --phosphor: #33ff33;
+    --phosphor-dim: #1a8c1a;
+    --phosphor-bright: #66ff66;
+    --phosphor-glow: rgba(51, 255, 51, 0.15);
+    --amber: #ffaa00;
+    --amber-dim: #8c5e00;
+    --cyan: #00cccc;
+    --cyan-bright: #55ffff;
+    --magenta: #cc44cc;
+    --red: #ff3333;
+    --blue: #3333ff;
+    --blue-bright: #5555ff;
+    --yellow: #ffff33;
+    --white: #cccccc;
+    --white-bright: #ffffff;
+    --bg: #0a0a0a;
+    --bg-lighter: #111111;
+    --scanline-opacity: 0.08;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: #000;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: 'VT323', 'Courier New', monospace;
+    font-size: 18px;
+    color: var(--phosphor);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #monitor {
+    position: relative;
+    width: 900px;
+    height: 640px;
+    background: var(--bg);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow:
+      0 0 80px rgba(51, 255, 51, 0.06),
+      0 0 2px rgba(51, 255, 51, 0.3),
+      inset 0 0 100px rgba(0,0,0,0.5);
+  }
+
+  #monitor::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, var(--scanline-opacity)) 2px,
+      rgba(0, 0, 0, var(--scanline-opacity)) 4px
+    );
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  #monitor::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse at center,
+      transparent 60%,
+      rgba(0, 0, 0, 0.35) 100%
+    );
+    pointer-events: none;
+    z-index: 11;
+  }
+
+  .crt-flicker {
+    animation: flicker 0.08s infinite alternate;
+  }
+
+  @keyframes flicker {
+    0% { opacity: 0.985; }
+    100% { opacity: 1; }
+  }
+
+  @keyframes textShadowPulse {
+    0% { text-shadow: 0 0 4px var(--phosphor-glow); }
+    50% { text-shadow: 0 0 8px var(--phosphor-glow), 0 0 2px var(--phosphor); }
+    100% { text-shadow: 0 0 4px var(--phosphor-glow); }
+  }
+
+  #screen {
+    position: absolute;
+    inset: 12px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px 12px;
+    z-index: 5;
+    scrollbar-width: none;
+    animation: textShadowPulse 4s ease-in-out infinite;
+    cursor: default;
+  }
+
+  #screen::-webkit-scrollbar { display: none; }
+
+  #output {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.3;
+    min-height: 100%;
+  }
+
+  #output .line {
+    display: block;
+  }
+
+  #input-area {
+    display: none;
+    margin-top: 2px;
+  }
+
+  #input-area .prompt-text {
+    color: var(--cyan-bright);
+  }
+
+  #user-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--white-bright);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    caret-color: var(--phosphor-bright);
+    width: 60%;
+  }
+
+  .cursor-blink {
+    display: inline-block;
+    width: 10px;
+    height: 18px;
+    background: var(--phosphor);
+    animation: blink 0.6s step-end infinite;
+    vertical-align: middle;
+    margin-left: 2px;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* ANSI color classes */
+  .c-green { color: var(--phosphor); }
+  .c-green-b { color: var(--phosphor-bright); font-weight: bold; }
+  .c-amber { color: var(--amber); }
+  .c-cyan { color: var(--cyan); }
+  .c-cyan-b { color: var(--cyan-bright); }
+  .c-magenta { color: var(--magenta); }
+  .c-red { color: var(--red); }
+  .c-blue { color: var(--blue); }
+  .c-blue-b { color: var(--blue-bright); }
+  .c-yellow { color: var(--yellow); }
+  .c-white { color: var(--white); }
+  .c-white-b { color: var(--white-bright); font-weight: bold; }
+  .c-dim { color: #446644; }
+  .c-amber-b { color: #ffcc44; font-weight: bold; }
+
+  .bg-blue { background: #000088; }
+
+  .blink-text { animation: blink 1s step-end infinite; }
+
+  #power-led {
+    position: absolute;
+    bottom: 8px;
+    right: 16px;
+    width: 6px;
+    height: 6px;
+    background: #33ff33;
+    border-radius: 50%;
+    box-shadow: 0 0 6px #33ff33;
+    z-index: 20;
+  }
+
+  #monitor-label {
+    position: absolute;
+    bottom: 6px;
+    left: 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: #333;
+    letter-spacing: 2px;
+    z-index: 20;
+    text-transform: uppercase;
+  }
+
+  /* Noise overlay */
+  .noise {
+    position: absolute;
+    inset: 0;
+    z-index: 9;
+    opacity: 0.03;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  }
+
+  /* Boot screen glitch */
+  @keyframes glitch {
+    0% { transform: translate(0); }
+    20% { transform: translate(-2px, 1px); }
+    40% { transform: translate(1px, -1px); }
+    60% { transform: translate(-1px, 2px); }
+    80% { transform: translate(2px, -1px); }
+    100% { transform: translate(0); }
+  }
+
+  .glitch {
+    animation: glitch 0.1s linear 3;
+  }
+</style>
+</head>
+<body>
+<div id="monitor" class="crt-flicker">
+  <div class="noise"></div>
+  <div id="screen">
+    <div id="output"></div>
+    <div id="input-area">
+      <span class="prompt-text"></span>
+      <input type="text" id="user-input" autocomplete="off" spellcheck="false" maxlength="80">
+    </div>
+  </div>
+  <div id="power-led"></div>
+  <div id="monitor-label">VirtuTerm VT-380</div>
+</div>
+
+<script>
+// ==================== AUDIO ENGINE ====================
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+}
+
+function playTone(freq, duration, type = 'square', vol = 0.06) {
+  ensureAudio();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.value = vol;
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+function playModemHandshake() {
+  ensureAudio();
+  const duration = 3.5;
+  const bufferSize = audioCtx.sampleRate * duration;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+
+  for (let i = 0; i < bufferSize; i++) {
+    const t = i / audioCtx.sampleRate;
+    let sample = 0;
+
+    if (t < 0.8) {
+      // Dial tone
+      sample = 0.15 * Math.sin(2 * Math.PI * 350 * t) + 0.15 * Math.sin(2 * Math.PI * 440 * t);
+    } else if (t < 1.0) {
+      // Ring
+      sample = 0.12 * Math.sin(2 * Math.PI * 480 * t) * Math.sin(2 * Math.PI * 20 * t);
+    } else if (t < 1.8) {
+      // Carrier tone
+      sample = 0.1 * Math.sin(2 * Math.PI * 1200 * t) + 0.05 * Math.sin(2 * Math.PI * 2400 * t);
+    } else if (t < 2.8) {
+      // Scramble / negotiation
+      const freq = 600 + 1800 * Math.sin(t * 40);
+      sample = 0.08 * Math.sin(2 * Math.PI * freq * t);
+      sample += 0.04 * (Math.random() * 2 - 1);
+    } else {
+      // White noise fadeout
+      const fade = 1 - (t - 2.8) / 0.7;
+      sample = 0.06 * (Math.random() * 2 - 1) * fade;
+    }
+
+    data[i] = sample;
+  }
+
+  const source = audioCtx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(audioCtx.destination);
+  source.start();
+}
+
+function playKeystroke() {
+  playTone(800 + Math.random() * 400, 0.03, 'square', 0.02);
+}
+
+function playBeep() {
+  playTone(880, 0.1, 'square', 0.05);
+}
+
+function playError() {
+  playTone(220, 0.15, 'sawtooth', 0.05);
+  setTimeout(() => playTone(180, 0.2, 'sawtooth', 0.04), 150);
+}
+
+// ==================== TERMINAL ENGINE ====================
+const output = document.getElementById('output');
+const inputArea = document.getElementById('input-area');
+const userInput = document.getElementById('user-input');
+const screen = document.getElementById('screen');
+const promptText = inputArea.querySelector('.prompt-text');
+
+let inputCallback = null;
+let currentScreen = 'boot';
+let username = '';
+
+function scrollToBottom() {
+  screen.scrollTop = screen.scrollHeight;
+}
+
+function addLine(html) {
+  const span = document.createElement('span');
+  span.className = 'line';
+  span.innerHTML = html + '\n';
+  output.appendChild(span);
+  scrollToBottom();
+}
+
+function addRaw(html) {
+  const span = document.createElement('span');
+  span.innerHTML = html;
+  output.appendChild(span);
+  scrollToBottom();
+}
+
+function clearScreen() {
+  output.innerHTML = '';
+}
+
+async function typeText(text, cls = '', speed = 22) {
+  const span = document.createElement('span');
+  if (cls) span.className = cls;
+  output.appendChild(span);
+
+  for (let i = 0; i < text.length; i++) {
+    span.textContent += text[i];
+    scrollToBottom();
+    if (text[i] !== ' ' && text[i] !== '\n' && Math.random() > 0.6) {
+      playKeystroke();
+    }
+    await sleep(speed + Math.random() * speed * 0.5);
+  }
+  return span;
+}
+
+async function typeLine(text, cls = '', speed = 22) {
+  await typeText(text + '\n', cls, speed);
+}
+
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+function waitForInput(prompt = '') {
+  return new Promise(resolve => {
+    promptText.innerHTML = prompt;
+    inputArea.style.display = 'block';
+    userInput.value = '';
+    userInput.focus();
+    inputCallback = resolve;
+    scrollToBottom();
+  });
+}
+
+userInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && inputCallback) {
+    const val = userInput.value.trim();
+    playBeep();
+    // Echo input
+    addLine(`<span class="c-cyan-b">${promptText.innerHTML}</span><span class="c-white-b">${escapeHtml(val)}</span>`);
+    inputArea.style.display = 'none';
+    const cb = inputCallback;
+    inputCallback = null;
+    cb(val);
+  }
+});
+
+// Always focus input on click
+document.getElementById('monitor').addEventListener('click', () => {
+  if (inputArea.style.display !== 'none') {
+    userInput.focus();
+  }
+});
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// ==================== BBS DATA ====================
+const SYSOP_NAME = 'PhantomSysop';
+const BBS_NAME = 'NightOwl BBS';
+const BBS_NUMBER = '(504) 555-0199';
+
+const messageBoards = {
+  general: {
+    name: 'General Discussion',
+    messages: [
+      { from: 'CyberViper', date: '02/08/96', subject: 'New DOOM WADs??', body: 'Anyone got links to new DOOM WADs? I finished\nall the ones on the file section. Looking for\nsomething REALLY hard. E-mail me if you got em.' },
+      { from: 'ShadowCat', date: '02/07/96', subject: 'RE: New DOOM WADs??', body: 'Check out ftp.cdrom.com -- they have a TON\nof new ones uploaded last week. The one called\nDEATHTRAP.WAD is insane, took me 3 hours.' },
+      { from: 'NeonDrifter', date: '02/06/96', subject: 'Pizza night friday', body: 'Hey everyone, having a pizza+LAN party at my\nplace this friday. Bring your own rig. Were\ngonna play Duke3D deathmatch all night.\nCall me at 555-0142 for directions.' },
+      { from: 'PhantomSysop', date: '02/05/96', subject: 'SYSTEM NOTICE', body: 'Upgraded the modem bank to 28.8k!! You should\nall see much faster download speeds now.\nAlso added 2GB of new storage for files.\n\nPlease dont abuse the ratios. -Phantom' },
+      { from: 'PixelWitch', date: '02/04/96', subject: 'ANSI art contest', body: 'Announcing the February ANSI art contest!\nTheme: SPACE\nDeadline: Feb 28\nPrize: 1 hour extra time + ratio boost\n\nUpload entries to FILE area under ANSI-ART.' },
+    ]
+  },
+  tech: {
+    name: 'Tech Talk',
+    messages: [
+      { from: 'ByteSmith', date: '02/08/96', subject: 'Win95 vs OS/2 Warp', body: 'OK I finally tried OS/2 Warp and honestly?\nIts way more stable than Win95. Multitasking\nactually WORKS. Only problem is driver support\nis terrible. Anyone got tips?' },
+      { from: 'CircuitGhost', date: '02/07/96', subject: 'Pentium 133 deal!!', body: 'CompUSA has the Pentium 133MHz for $399!!\nThats the cheapest Ive seen. Thinking about\nupgrading from my 486DX2-66. Worth it?' },
+      { from: 'DataPhoenix', date: '02/06/96', subject: 'RE: Pentium 133 deal', body: 'DEFINITELY worth it. I went from a 486 to\na P133 last month and WOW. Quake runs smooth\nas butter. Get at least 16MB RAM tho, 8 isnt\nenough for Win95 + games.' },
+      { from: 'CyberViper', date: '02/05/96', subject: 'Netscape vs Mosaic', body: 'Netscape Navigator 2.0 is the BEST browser.\nAnyone still using Mosaic needs to upgrade.\nThe new JavaScript stuff is gonna be huge,\nmark my words.' },
+    ]
+  },
+  trading: {
+    name: 'Trading Post',
+    messages: [
+      { from: 'NeonDrifter', date: '02/08/96', subject: 'WTS: Sound Blaster 16', body: 'Selling my SB16 for $40. Works perfect.\nUpgraded to an AWE32. Local pickup or\nI can ship for $5 extra. Email me.' },
+      { from: 'PixelWitch', date: '02/07/96', subject: 'WTB: 14.4 modem', body: 'Need a backup modem. 14.4 or better.\nWill pay $15-20. USR preferred but any\nbrand is fine. Leave msg here or email.' },
+      { from: 'MidnightRacer', date: '02/06/96', subject: 'FREE: 5.25 floppies', body: 'Got a box of about 200 5.25" floppies.\nMostly blank, some have old stuff on em.\nFree to whoever picks them up. Im in\nthe Metairie area.' },
+    ]
+  }
+};
+
+const fileLibrary = [
+  { name: 'DOOM2WAD.ZIP', size: '1.2MB', date: '02/01/96', desc: 'Collection of 15 DOOM II WADs', dl: 47 },
+  { name: 'FRACTINT.ZIP', size: '342KB', date: '01/28/96', desc: 'Fractint v19.6 - Fractal generator', dl: 23 },
+  { name: 'ANSI_ED.ZIP', size: '89KB', date: '01/25/96', desc: 'TheDraw v4.63 ANSI editor', dl: 31 },
+  { name: 'PKZIP25.EXE', size: '202KB', date: '01/22/96', desc: 'PKZIP v2.50 - File compression', dl: 156 },
+  { name: 'IRC_CLI.ZIP', size: '127KB', date: '01/20/96', desc: 'mIRC v4.1 IRC client for Windows', dl: 89 },
+  { name: 'USURPER.ZIP', size: '445KB', date: '01/18/96', desc: 'Usurper v0.918 BBS door game', dl: 62 },
+  { name: 'RENEGADE.ZIP', size: '890KB', date: '01/15/96', desc: 'Renegade BBS software v1.19', dl: 18 },
+  { name: 'QUAKE_DM.ZIP', size: '2.1MB', date: '01/12/96', desc: 'Quake demo shareware v0.91', dl: 203 },
+  { name: 'VGA_PLAN.ZIP', size: '156KB', date: '01/10/96', desc: 'VGA Planets v3.5 strategy game', dl: 44 },
+  { name: 'TELIX.ZIP', size: '310KB', date: '01/08/96', desc: 'Telix v3.51 terminal program', dl: 37 },
+];
+
+const userList = [
+  { name: 'PhantomSysop', level: 'SYSOP', calls: 999, lastOn: '02/09/96', from: 'New Orleans, LA' },
+  { name: 'CyberViper', level: 'Elite', calls: 284, lastOn: '02/08/96', from: 'Baton Rouge, LA' },
+  { name: 'ShadowCat', level: 'Regular', calls: 156, lastOn: '02/07/96', from: 'Metairie, LA' },
+  { name: 'NeonDrifter', level: 'Elite', calls: 312, lastOn: '02/08/96', from: 'Kenner, LA' },
+  { name: 'PixelWitch', level: 'Co-Sysop', calls: 445, lastOn: '02/08/96', from: 'Slidell, LA' },
+  { name: 'ByteSmith', level: 'Regular', calls: 89, lastOn: '02/06/96', from: 'Mandeville, LA' },
+  { name: 'CircuitGhost', level: 'Regular', calls: 67, lastOn: '02/07/96', from: 'Hammond, LA' },
+  { name: 'DataPhoenix', level: 'Elite', calls: 198, lastOn: '02/06/96', from: 'Covington, LA' },
+  { name: 'MidnightRacer', level: 'Regular', calls: 42, lastOn: '02/05/96', from: 'Metairie, LA' },
+  { name: 'ZeroGravity', level: 'Newbie', calls: 3, lastOn: '02/03/96', from: 'Gretna, LA' },
+];
+
+const userMessages = [];
+
+// ==================== ANSI ART ====================
+const LOGO_ART = `<span class="c-cyan-b">
+    _______ ___  _______  ___   ___  _______
+   |   _   |   ||   _   ||   |_|   ||   _   |        <span class="c-yellow">NightOwl BBS</span>
+   |  | |  ||  ||  | |  ||         ||  | |  |        <span class="c-white">Est. 1994</span>
+   |  | |  ||  ||  | |  ||  |   |  ||  | |  |        <span class="c-dim">${BBS_NUMBER}</span>
+   |  | |  ||  ||  |_|  ||  |   |  ||  |_|  |
+   |  | |  ||  ||       ||  |   |  ||       |        <span class="c-amber">28.8k USRobotics</span>
+   |__| |__||__||_______||__|   |__||_______|        <span class="c-amber">4 Lines Available</span>
+</span>`;
+
+const OWL_ART = `<span class="c-amber">
+           ,___,        <span class="c-yellow">  ___________________</span>
+           (O,O)        <span class="c-yellow"> |                   |</span>
+           /)  )        <span class="c-yellow"> |  Welcome to the   |</span>
+       -----"-"---      <span class="c-yellow"> |  NightOwl BBS!    |</span>
+       |         |      <span class="c-yellow"> |   Fly by night.   |</span>
+       |  /| |\\  |      <span class="c-yellow"> |___________________|</span>
+       |_/ | | \\_|
+           | |
+          _| |_
+</span>`;
+
+const DOOR_ART = `<span class="c-magenta">
+    +-----------------------------------------+
+    |  <span class="c-yellow">*** SHADOW DUNGEON ***</span>                  |
+    |  <span class="c-white">A Text Adventure Door Game</span>              |
+    |  <span class="c-dim">v1.3 by PhantomSysop (c)1995</span>           |
+    +-----------------------------------------+
+</span>`;
+
+const DIVIDER = `<span class="c-cyan">${'='.repeat(70)}</span>`;
+const THIN_DIV = `<span class="c-dim">${'-'.repeat(70)}</span>`;
+
+// ==================== SCREENS ====================
+
+async function bootSequence() {
+  ensureAudio();
+  currentScreen = 'boot';
+
+  await typeLine('BIOS v4.51PG  (C)1994 Award Software, Inc.', 'c-white', 8);
+  await sleep(300);
+  await typeLine('Pentium-S CPU at 133MHz', 'c-white', 8);
+  await typeLine('Memory Test:  16384K OK', 'c-white', 8);
+  await sleep(500);
+  await typeLine('', '', 0);
+  await typeLine('Detecting IDE drives...', 'c-dim', 12);
+  await typeLine('  Primary Master:   WDC AC21600H  1.6GB', 'c-white', 8);
+  await typeLine('  Primary Slave:    ATAPI CD-ROM 4X', 'c-white', 8);
+  await sleep(400);
+  await typeLine('', '', 0);
+  await typeLine('USRobotics Sportster 28800 detected on COM2', 'c-amber', 15);
+  await sleep(600);
+
+  clearScreen();
+  await typeLine('C:\\BBS>', 'c-white', 30);
+  await sleep(200);
+  await typeLine('C:\\BBS>NIGHTOWL.EXE /init', 'c-amber', 30);
+  await sleep(400);
+  await typeLine('', '', 0);
+  addLine(DIVIDER);
+  addLine(`<span class="c-yellow">  ${BBS_NAME} - Initializing...</span>`);
+  addLine(DIVIDER);
+  await sleep(300);
+
+  const initSteps = [
+    'Loading configuration...',
+    'Initializing modem on COM2...',
+    'Setting baud rate to 28800...',
+    'Loading message bases...',
+    'Loading file directories...',
+    'Loading door games...',
+    'Loading user database (10 users)...',
+    'Initializing node 1 of 4...',
+  ];
+
+  for (const step of initSteps) {
+    await typeText('  ' + step, 'c-dim', 12);
+    await sleep(200 + Math.random() * 200);
+    addRaw('<span class="c-green-b"> OK</span>\n');
+    await sleep(100);
+  }
+
+  await sleep(300);
+  addLine('');
+  addLine(`<span class="c-green-b">  System ready. Waiting for caller...</span>`);
+  addLine('');
+  await sleep(800);
+
+  // Modem sequence
+  addLine(`<span class="c-amber">  RING</span>`);
+  await sleep(600);
+  addLine(`<span class="c-amber">  RING</span>`);
+  await sleep(400);
+  await typeLine('  ATA', 'c-white', 40);
+  await sleep(300);
+
+  playModemHandshake();
+
+  await typeLine('  CONNECT 28800/ARQ/V.34/LAPM/V.42BIS', 'c-green-b', 18);
+  await sleep(3000);
+
+  clearScreen();
+  await sleep(500);
+  await loginScreen();
+}
+
+async function loginScreen() {
+  currentScreen = 'login';
+
+  addLine(LOGO_ART);
+  addLine('');
+  addLine(OWL_ART);
+  addLine('');
+  addLine(DIVIDER);
+  addLine(`<span class="c-white">  Node 1  |  28800 bps  |  ANSI Detected  |  ${new Date().toLocaleDateString('en-US')}</span>`);
+  addLine(DIVIDER);
+  addLine('');
+  addLine(`<span class="c-yellow">  "The night belongs to those who dream in code."</span>`);
+  addLine('');
+
+  const name = await waitForInput('  Enter your handle: ');
+  if (!name) {
+    username = 'Guest';
+  } else {
+    username = escapeHtml(name);
+  }
+
+  playBeep();
+  addLine('');
+  await typeLine(`  Checking user database...`, 'c-dim', 20);
+  await sleep(400);
+  await typeLine(`  Welcome aboard, ${username}!`, 'c-green-b', 20);
+  await sleep(300);
+  addLine(`<span class="c-white">  Last caller was: <span class="c-cyan">NeonDrifter</span> at <span class="c-amber">11:42 PM</span></span>`);
+  addLine(`<span class="c-white">  Total calls to system: <span class="c-yellow">2,847</span></span>`);
+  addLine('');
+  await sleep(500);
+
+  // Check for mail
+  addLine(`<span class="c-yellow blink-text">  ** You have 2 new messages! **</span>`);
+  await sleep(1000);
+  addLine('');
+
+  await waitForInput('  Press [ENTER] to continue...');
+  clearScreen();
+  await mainMenu();
+}
+
+async function mainMenu() {
+  currentScreen = 'main';
+  clearScreen();
+
+  addLine(DIVIDER);
+  addLine(`<span class="c-cyan-b">  ${BBS_NAME}</span><span class="c-white"> - Main Menu</span><span class="c-dim">                   Node 1 | ${username}</span>`);
+  addLine(DIVIDER);
+  addLine('');
+  addLine(`<span class="c-yellow">  [${'M'.fontcolor || 'M'}]</span><span class="c-white">  <span class="c-cyan-b">[M]</span> Message Boards     - Read & post messages</span>`);
+  addLine(`<span class="c-white">  <span class="c-cyan-b">[F]</span> File Library       - Browse & download files</span>`);
+  addLine(`<span class="c-white">  <span class="c-cyan-b">[D]</span> Door Games        - Play online games!</span>`);
+  addLine(`<span class="c-white">  <span class="c-cyan-b">[U]</span> User List          - Who's who on NightOwl</span>`);
+  addLine(`<span class="c-white">  <span class="c-cyan-b">[C]</span> Chat with Sysop    - Page the Sysop</span>`);
+  addLine(`<span class="c-white">  <span class="c-cyan-b">[I]</span> System Info        - About this BBS</span>`);
+  addLine(`<span class="c-white">  <span class="c-cyan-b">[G]</span> Goodbye            - Logoff</span>`);
+  addLine('');
+  addLine(THIN_DIV);
+  addLine(`<span class="c-dim">  Time remaining: 58 min  |  Calls today: 23  |  Files: 142</span>`);
+  addLine(THIN_DIV);
+  addLine('');
+
+  const choice = await waitForInput('  Command [M,F,D,U,C,I,G]: ');
+
+  switch (choice.toUpperCase()) {
+    case 'M': await messageBoardMenu(); break;
+    case 'F': await fileLibraryScreen(); break;
+    case 'D': await doorGameMenu(); break;
+    case 'U': await userListScreen(); break;
+    case 'C': await sysopChat(); break;
+    case 'I': await systemInfo(); break;
+    case 'G': await goodbye(); return;
+    default:
+      playError();
+      addLine(`<span class="c-red">  Invalid selection. Try again.</span>`);
+      await sleep(800);
+      await mainMenu();
+      return;
+  }
+}
+
+// ==================== MESSAGE BOARDS ====================
+
+async function messageBoardMenu() {
+  currentScreen = 'msgboards';
+  clearScreen();
+
+  addLine(DIVIDER);
+  addLine(`<span class="c-cyan-b">  Message Boards</span>`);
+  addLine(DIVIDER);
+  addLine('');
+  addLine(`<span class="c-white">  <span class="c-cyan-b">[1]</span> General Discussion   (${messageBoards.general.messages.length + userMessages.filter(m => m.board === 'general').length} msgs)</span>`);
+  addLine(`<span class="c-white">  <span class="c-cyan-b">[2]</span> Tech Talk            (${messageBoards.tech.messages.length + userMessages.filter(m => m.board === 'tech').length} msgs)</span>`);
+  addLine(`<span class="c-white">  <span class="c-cyan-b">[3]</span> Trading Post         (${messageBoards.trading.messages.length + userMessages.filter(m => m.board === 'trading').length} msgs)</span>`);
+  addLine(`<span class="c-white">  <span class="c-cyan-b">[Q]</span> Return to Main Menu</span>`);
+  addLine('');
+
+  const choice = await waitForInput('  Select board [1-3,Q]: ');
+
+  const boards = ['general', 'tech', 'trading'];
+  if (choice === '1' || choice === '2' || choice === '3') {
+    await viewBoard(boards[parseInt(choice) - 1]);
+  } else {
+    await mainMenu();
+  }
+}
+
+async function viewBoard(boardKey) {
+  clearScreen();
+  const board = messageBoards[boardKey];
+  const allMessages = [...board.messages, ...userMessages.filter(m => m.board === boardKey)];
+
+  addLine(DIVIDER);
+  addLine(`<span class="c-cyan-b">  ${board.name}</span><span class="c-dim">  (${allMessages.length} messages)</span>`);
+  addLine(DIVIDER);
+  addLine('');
+  addLine(`<span class="c-amber">  ##  Date      From             Subject</span>`);
+  addLine(THIN_DIV);
+
+  allMessages.forEach((msg, i) => {
+    const num = String(i + 1).padStart(2, ' ');
+    const from = msg.from.padEnd(16, ' ');
+    addLine(`<span class="c-white">  ${num}  ${msg.date}  <span class="c-cyan">${escapeHtml(from)}</span> ${escapeHtml(msg.subject)}</span>`);
+  });
+
+  addLine('');
+  addLine(`<span class="c-dim">  [#] Read message  [P] Post new  [Q] Back</span>`);
+  addLine('');
+
+  const choice = await waitForInput('  Command: ');
+
+  if (choice.toUpperCase() === 'P') {
+    await postMessage(boardKey);
+  } else if (choice.toUpperCase() === 'Q') {
+    await messageBoardMenu();
+  } else {
+    const num = parseInt(choice);
+    if (num >= 1 && num <= allMessages.length) {
+      await readMessage(boardKey, allMessages[num - 1]);
+    } else {
+      playError();
+      await viewBoard(boardKey);
+    }
+  }
+}
+
+async function readMessage(boardKey, msg) {
+  clearScreen();
+
+  addLine(DIVIDER);
+  addLine(`<span class="c-amber">  From:    <span class="c-cyan-b">${escapeHtml(msg.from)}</span></span>`);
+  addLine(`<span class="c-amber">  Date:    <span class="c-white">${msg.date}</span></span>`);
+  addLine(`<span class="c-amber">  Subject: <span class="c-white-b">${escapeHtml(msg.subject)}</span></span>`);
+  addLine(DIVIDER);
+  addLine('');
+
+  const lines = msg.body.split('\n');
+  for (const line of lines) {
+    await typeLine('  ' + line, 'c-white', 10);
+  }
+
+  addLine('');
+  addLine(THIN_DIV);
+  addLine('');
+
+  await waitForInput('  Press [ENTER] to go back...');
+  await viewBoard(boardKey);
+}
+
+async function postMessage(boardKey) {
+  clearScreen();
+
+  addLine(DIVIDER);
+  addLine(`<span class="c-cyan-b">  Post New Message</span><span class="c-dim"> - ${messageBoards[boardKey].name}</span>`);
+  addLine(DIVIDER);
+  addLine('');
+
+  const subject = await waitForInput('  Subject: ');
+  if (!subject) { await viewBoard(boardKey); return; }
+
+  addLine('');
+  addLine(`<span class="c-dim">  Type your message (single line):</span>`);
+  const body = await waitForInput('  > ');
+
+  if (body) {
+    const today = new Date();
+    const dateStr = `${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}/96`;
+
+    userMessages.push({
+      board: boardKey,
+      from: username,
+      date: dateStr,
+      subject: subject,
+      body: body
+    });
+
+    addLine('');
+    await typeLine('  Saving message...', 'c-dim', 20);
+    await sleep(400);
+    addLine(`<span class="c-green-b">  Message posted successfully!</span>`);
+    playBeep();
+    await sleep(800);
+  }
+
+  await viewBoard(boardKey);
+}
+
+// ==================== FILE LIBRARY ====================
+
+async function fileLibraryScreen() {
+  currentScreen = 'files';
+  clearScreen();
+
+  addLine(DIVIDER);
+  addLine(`<span class="c-cyan-b">  File Library</span><span class="c-dim">  (${fileLibrary.length} files, 5.7MB total)</span>`);
+  addLine(DIVIDER);
+  addLine('');
+  addLine(`<span class="c-amber">  Filename         Size     Date      DLs  Description</span>`);
+  addLine(THIN_DIV);
+
+  fileLibrary.forEach(f => {
+    const name = f.name.padEnd(17, ' ');
+    const size = f.size.padEnd(9, ' ');
+    const dl = String(f.dl).padStart(3, ' ');
+    addLine(`<span class="c-green-b">  ${name}</span><span class="c-white">${size}${f.date}  ${dl}  <span class="c-dim">${f.desc}</span></span>`);
+  });
+
+  addLine('');
+  addLine(THIN_DIV);
+  addLine(`<span class="c-dim">  Upload/Download ratio: 1:5  |  Credits: 142</span>`);
+  addLine('');
+
+  const choice = await waitForInput('  [D]ownload, [Q]uit to menu: ');
+
+  if (choice.toUpperCase() === 'D') {
+    const fname = await waitForInput('  Filename: ');
+    const file = fileLibrary.find(f => f.name.toLowerCase() === fname.toLowerCase());
+    if (file) {
+      addLine('');
+      await fakeDownload(file);
+    } else {
+      playError();
+      addLine(`<span class="c-red">  File not found.</span>`);
+      await sleep(800);
+    }
+    await fileLibraryScreen();
+  } else {
+    await mainMenu();
+  }
+}
+
+async function fakeDownload(file) {
+  addLine(`<span class="c-amber">  Initiating Zmodem transfer: ${file.name}</span>`);
+  addLine('');
+
+  const blocks = 20;
+  for (let i = 0; i <= blocks; i++) {
+    const pct = Math.round((i / blocks) * 100);
+    const bar = '\u2588'.repeat(i) + '\u2591'.repeat(blocks - i);
+    const cps = Math.round(2800 + Math.random() * 400);
+
+    const line = `  [${bar}] ${String(pct).padStart(3)}%  ${cps} cps`;
+
+    if (i > 0) {
+      // Remove previous line
+      output.removeChild(output.lastChild);
+    }
+    addLine(`<span class="c-green">${line}</span>`);
+    await sleep(100 + Math.random() * 80);
+  }
+
+  addLine('');
+  addLine(`<span class="c-green-b">  Transfer complete: ${file.name} (${file.size})</span>`);
+  playBeep();
+  await sleep(600);
+}
+
+// ==================== DOOR GAMES ====================
+
+async function doorGameMenu() {
+  currentScreen = 'doors';
+  clearScreen();
+
+  addLine(DIVIDER);
+  addLine(`<span class="c-cyan-b">  Door Games</span>`);
+  addLine(DIVIDER);
+  addLine('');
+  addLine(`<span class="c-white">  <span class="c-cyan-b">[1]</span> Shadow Dungeon      - Text adventure RPG</span>`);
+  addLine(`<span class="c-white">  <span class="c-cyan-b">[2]</span> Number Oracle       - Guess the number!</span>`);
+  addLine(`<span class="c-white">  <span class="c-cyan-b">[Q]</span> Return to Main Menu</span>`);
+  addLine('');
+
+  const choice = await waitForInput('  Select game [1-2,Q]: ');
+
+  switch (choice) {
+    case '1': await shadowDungeon(); break;
+    case '2': await numberOracle(); break;
+    default: await mainMenu();
+  }
+}
+
+// ---- SHADOW DUNGEON ----
+async function shadowDungeon() {
+  clearScreen();
+  addLine(DOOR_ART);
+  addLine('');
+  await typeLine('  Loading SHADOW DUNGEON...', 'c-dim', 20);
+  await typeLine('  Establishing FOSSIL driver link...', 'c-dim', 20);
+  await sleep(500);
+  clearScreen();
+
+  addLine(DOOR_ART);
+  addLine('');
+
+  let hp = 20;
+  let gold = 5;
+  let hasKey = false;
+  let hasSword = false;
+  let room = 'entrance';
+
+  const rooms = {
+    entrance: {
+      desc: `You stand at the entrance of a dark dungeon. Cold air\n  seeps from the stone walls. Torches flicker dimly.\n  A <span class="c-amber">rusty sword</span> lies on the ground.\n\n  Exits: [N]orth corridor, [E]ast passage`,
+      actions: {
+        N: 'corridor',
+        E: 'passage',
+        T: () => {
+          if (!hasSword) {
+            hasSword = true;
+            return `<span class="c-green-b">  You pick up the rusty sword! (+ATK)</span>`;
+          }
+          return `<span class="c-dim">  You already have the sword.</span>`;
+        }
+      }
+    },
+    corridor: {
+      desc: `A long corridor stretches before you. Bones litter\n  the floor. You hear growling in the darkness ahead.\n  A <span class="c-red">GOBLIN</span> blocks your path!\n\n  Actions: [A]ttack, [R]un back south`,
+      actions: {
+        A: async () => {
+          if (hasSword) {
+            addLine(`<span class="c-yellow">  You slash the goblin with your sword!</span>`);
+            await sleep(500);
+            addLine(`<span class="c-green-b">  The goblin falls! You find 10 gold!</span>`);
+            gold += 10;
+            rooms.corridor.desc = `The corridor is quiet now. The goblin's remains\n  lie scattered. The path north is clear.\n\n  Exits: [N]orth to chamber, [S]outh to entrance`;
+            rooms.corridor.actions = { N: 'chamber', S: 'entrance' };
+            return null;
+          } else {
+            hp -= 8;
+            return `<span class="c-red">  You punch the goblin! It bites back! (-8 HP)</span>`;
+          }
+        },
+        R: 'entrance',
+        S: 'entrance',
+        N: 'chamber'
+      }
+    },
+    passage: {
+      desc: `A narrow passage. Water drips from the ceiling.\n  There's a <span class="c-yellow">golden key</span> hanging on a hook.\n  A locked <span class="c-amber">treasure chest</span> sits in the corner.\n\n  Exits: [W]est back to entrance`,
+      actions: {
+        T: () => {
+          if (!hasKey) {
+            hasKey = true;
+            return `<span class="c-green-b">  You take the golden key!</span>`;
+          }
+          return `<span class="c-dim">  You already have the key.</span>`;
+        },
+        O: () => {
+          if (hasKey) {
+            gold += 25;
+            hasKey = false;
+            return `<span class="c-yellow">  You unlock the chest! Inside: 25 GOLD!</span>`;
+          }
+          return `<span class="c-red">  The chest is locked. You need a key.</span>`;
+        },
+        W: 'entrance'
+      }
+    },
+    chamber: {
+      desc: `A massive chamber opens up. In the center sits a\n  <span class="c-magenta">DARK WIZARD</span> on a throne of skulls!\n\n  "Foolish mortal! Face your doom!"\n\n  Actions: [A]ttack, [R]un south`,
+      actions: {
+        A: async () => {
+          if (hasSword && gold >= 15) {
+            addLine(`<span class="c-yellow">  Your sword glows with golden energy!</span>`);
+            await sleep(600);
+            addLine(`<span class="c-white-b">  You strike the wizard with a mighty blow!</span>`);
+            await sleep(600);
+            addLine('');
+            addLine(`<span class="c-green-b">  *** VICTORY! ***</span>`);
+            addLine(`<span class="c-green-b">  The Dark Wizard is defeated!</span>`);
+            addLine(`<span class="c-yellow">  You claim his treasure: 100 GOLD!</span>`);
+            addLine(`<span class="c-cyan-b">  Your legend will be told throughout the BBS!</span>`);
+            gold += 100;
+            addLine('');
+            addLine(`<span class="c-white">  Final score: ${gold} gold, ${hp} HP remaining</span>`);
+            addLine('');
+            await waitForInput('  Press [ENTER] to exit game...');
+            await doorGameMenu();
+            return 'END';
+          } else if (hasSword) {
+            hp -= 12;
+            if (hp <= 0) {
+              addLine(`<span class="c-red">  The wizard blasts you with dark magic!</span>`);
+              addLine(`<span class="c-red">  *** YOU HAVE DIED ***</span>`);
+              addLine(`<span class="c-dim">  Final gold: ${gold}</span>`);
+              addLine('');
+              await waitForInput('  Press [ENTER] to exit...');
+              await doorGameMenu();
+              return 'END';
+            }
+            return `<span class="c-red">  Your sword barely scratches him! He retaliates! (-12 HP)\n  You need more gold to power the sword...</span>`;
+          } else {
+            hp -= 15;
+            if (hp <= 0) {
+              addLine(`<span class="c-red">  The wizard destroys you with a fireball!</span>`);
+              addLine(`<span class="c-red">  *** YOU HAVE DIED ***</span>`);
+              addLine('');
+              await waitForInput('  Press [ENTER] to exit...');
+              await doorGameMenu();
+              return 'END';
+            }
+            return `<span class="c-red">  You have no weapon! The wizard blasts you! (-15 HP)</span>`;
+          }
+        },
+        R: 'corridor',
+        S: 'corridor'
+      }
+    }
+  };
+
+  async function gameLoop() {
+    while (true) {
+      clearScreen();
+      addLine(THIN_DIV);
+      addLine(`<span class="c-amber">  SHADOW DUNGEON</span><span class="c-white">  HP: <span class="${hp > 10 ? 'c-green-b' : 'c-red'}">${hp}</span>  Gold: <span class="c-yellow">${gold}</span>  Items: ${hasSword ? '<span class="c-amber">Sword</span>' : ''}${hasKey ? ' <span class="c-yellow">Key</span>' : ''}${!hasSword && !hasKey ? '<span class="c-dim">none</span>' : ''}</span>`);
+      addLine(THIN_DIV);
+      addLine('');
+
+      const r = rooms[room];
+      const descLines = r.desc.split('\n');
+      for (const line of descLines) {
+        addLine(`<span class="c-white">  ${line}</span>`);
+      }
+
+      addLine('');
+      addLine(`<span class="c-dim">  [T]ake item  [O]pen chest  [Q]uit game</span>`);
+      addLine('');
+
+      const cmd = await waitForInput('  > ');
+      const action = r.actions[cmd.toUpperCase()];
+
+      if (cmd.toUpperCase() === 'Q') {
+        await doorGameMenu();
+        return;
+      }
+
+      if (!action) {
+        playError();
+        addLine(`<span class="c-red">  Invalid command.</span>`);
+        await sleep(600);
+        continue;
+      }
+
+      if (typeof action === 'string') {
+        room = action;
+      } else if (typeof action === 'function') {
+        const result = await action();
+        if (result === 'END') return;
+        if (result) {
+          addLine(result);
+          await sleep(1000);
+        }
+      }
+
+      if (hp <= 0) {
+        addLine(`<span class="c-red">  *** YOU HAVE DIED ***</span>`);
+        await sleep(1000);
+        await waitForInput('  Press [ENTER]...');
+        await doorGameMenu();
+        return;
+      }
+    }
+  }
+
+  await gameLoop();
+}
+
+// ---- NUMBER ORACLE ----
+async function numberOracle() {
+  clearScreen();
+
+  addLine(DIVIDER);
+  addLine(`<span class="c-magenta">  *** THE NUMBER ORACLE ***</span>`);
+  addLine(`<span class="c-dim">  v2.1 - A game of mystic deduction</span>`);
+  addLine(DIVIDER);
+  addLine('');
+  await typeLine('  The Oracle has chosen a number between 1 and 100.', 'c-white', 15);
+  await typeLine('  You have 7 attempts to divine the answer.', 'c-white', 15);
+  addLine('');
+
+  const target = Math.floor(Math.random() * 100) + 1;
+  let attempts = 7;
+
+  while (attempts > 0) {
+    addLine(`<span class="c-amber">  Attempts remaining: ${attempts}</span>`);
+    const guess = await waitForInput('  Your guess: ');
+    const num = parseInt(guess);
+
+    if (isNaN(num) || num < 1 || num > 100) {
+      playError();
+      addLine(`<span class="c-red">  Enter a number between 1 and 100!</span>`);
+      continue;
+    }
+
+    attempts--;
+
+    if (num === target) {
+      addLine('');
+      addLine(`<span class="c-green-b">  *** CORRECT! ***</span>`);
+      addLine(`<span class="c-yellow">  The Oracle is impressed! You found it in ${7 - attempts} guesses!</span>`);
+      playBeep();
+      const score = (7 - attempts) <= 3 ? 'LEGENDARY' : (7 - attempts) <= 5 ? 'SKILLED' : 'LUCKY';
+      addLine(`<span class="c-cyan-b">  Rating: ${score}</span>`);
+      addLine('');
+      await waitForInput('  Press [ENTER] to continue...');
+      await doorGameMenu();
+      return;
+    } else if (num < target) {
+      addLine(`<span class="c-cyan">  The Oracle whispers: "Higher..."</span>`);
+    } else {
+      addLine(`<span class="c-cyan">  The Oracle whispers: "Lower..."</span>`);
+    }
+    addLine('');
+  }
+
+  addLine(`<span class="c-red">  The Oracle grows silent. The number was ${target}.</span>`);
+  addLine(`<span class="c-dim">  Better luck next time, mortal.</span>`);
+  addLine('');
+  await waitForInput('  Press [ENTER] to continue...');
+  await doorGameMenu();
+}
+
+// ==================== USER LIST ====================
+
+async function userListScreen() {
+  currentScreen = 'users';
+  clearScreen();
+
+  addLine(DIVIDER);
+  addLine(`<span class="c-cyan-b">  User List</span><span class="c-dim">  (${userList.length} registered users)</span>`);
+  addLine(DIVIDER);
+  addLine('');
+  addLine(`<span class="c-amber">  Handle           Level      Calls  Last On     Location</span>`);
+  addLine(THIN_DIV);
+
+  for (const u of userList) {
+    const name = u.name.padEnd(17, ' ');
+    const level = u.level.padEnd(11, ' ');
+    const calls = String(u.calls).padStart(4, ' ');
+    const levelColor = u.level === 'SYSOP' ? 'c-red' : u.level === 'Co-Sysop' ? 'c-magenta' : u.level === 'Elite' ? 'c-yellow' : u.level === 'Newbie' ? 'c-dim' : 'c-green';
+    addLine(`<span class="c-cyan-b">  ${name}</span><span class="${levelColor}">${level}</span><span class="c-white">${calls}   ${u.lastOn}  <span class="c-dim">${u.from}</span></span>`);
+  }
+
+  addLine('');
+  addLine(THIN_DIV);
+  addLine('');
+
+  await waitForInput('  Press [ENTER] for main menu...');
+  await mainMenu();
+}
+
+// ==================== SYSOP CHAT ====================
+
+async function sysopChat() {
+  currentScreen = 'chat';
+  clearScreen();
+
+  addLine(DIVIDER);
+  addLine(`<span class="c-cyan-b">  Chat with Sysop</span>`);
+  addLine(DIVIDER);
+  addLine('');
+  await typeLine('  Paging Sysop...', 'c-amber', 25);
+
+  for (let i = 0; i < 5; i++) {
+    playTone(660, 0.15, 'square', 0.04);
+    addRaw(`<span class="c-yellow">  *BEEP* </span>`);
+    await sleep(500);
+  }
+
+  addLine('');
+  addLine('');
+  await sleep(800);
+
+  const responses = [
+    `Yo ${username}! PhantomSysop here. Whats up?`,
+    `Just finished upgrading the modem bank. Pretty sweet huh?`,
+    `Hey sorry gotta run, pizza delivery guy is here.`,
+    `Remember: the BBS is down for maintenance every Sunday 2-4 AM.`,
+    `Later! Keep it real. -Phantom`,
+  ];
+
+  addLine(`<span class="c-green-b">  *** SYSOP IS HERE ***</span>`);
+  addLine('');
+
+  for (const r of responses) {
+    await typeLine(`  <${SYSOP_NAME}> ${r}`, 'c-amber', 18);
+    await sleep(600);
+
+    if (r.includes('Whats up')) {
+      const reply = await waitForInput(`  <${username}> `);
+      if (reply) {
+        await sleep(400);
+        await typeLine(`  <${SYSOP_NAME}> Cool cool. Yeah I hear ya.`, 'c-amber', 18);
+        await sleep(300);
+      }
+    }
+  }
+
+  addLine('');
+  addLine(`<span class="c-dim">  *** SYSOP HAS LEFT CHAT ***</span>`);
+  addLine('');
+
+  await waitForInput('  Press [ENTER] for main menu...');
+  await mainMenu();
+}
+
+// ==================== SYSTEM INFO ====================
+
+async function systemInfo() {
+  currentScreen = 'info';
+  clearScreen();
+
+  addLine(DIVIDER);
+  addLine(`<span class="c-cyan-b">  System Information</span>`);
+  addLine(DIVIDER);
+  addLine('');
+  addLine(`<span class="c-amber">  BBS Name:</span><span class="c-white-b">      ${BBS_NAME}</span>`);
+  addLine(`<span class="c-amber">  Phone:</span><span class="c-white">          ${BBS_NUMBER}</span>`);
+  addLine(`<span class="c-amber">  Sysop:</span><span class="c-cyan-b">          ${SYSOP_NAME}</span>`);
+  addLine(`<span class="c-amber">  Software:</span><span class="c-white">       NightOwl Custom v3.2</span>`);
+  addLine(`<span class="c-amber">  Established:</span><span class="c-white">    March 15, 1994</span>`);
+  addLine(`<span class="c-amber">  Location:</span><span class="c-white">       New Orleans, Louisiana</span>`);
+  addLine('');
+  addLine(THIN_DIV);
+  addLine(`<span class="c-yellow">  HARDWARE</span>`);
+  addLine(THIN_DIV);
+  addLine(`<span class="c-white">  CPU:            Intel Pentium 133MHz</span>`);
+  addLine(`<span class="c-white">  RAM:            16MB EDO</span>`);
+  addLine(`<span class="c-white">  Storage:        1.6GB Western Digital + 540MB Maxtor</span>`);
+  addLine(`<span class="c-white">  Modem:          USRobotics Sportster 28.8k (x4 lines)</span>`);
+  addLine(`<span class="c-white">  OS:             MS-DOS 6.22 / DESQview 2.80</span>`);
+  addLine('');
+  addLine(THIN_DIV);
+  addLine(`<span class="c-yellow">  STATISTICS</span>`);
+  addLine(THIN_DIV);
+  addLine(`<span class="c-white">  Total Users:     10</span>`);
+  addLine(`<span class="c-white">  Total Calls:     2,847</span>`);
+  addLine(`<span class="c-white">  Files Online:    142 (5.7MB)</span>`);
+  addLine(`<span class="c-white">  Messages:        ${Object.values(messageBoards).reduce((a, b) => a + b.messages.length, 0) + userMessages.length}</span>`);
+  addLine(`<span class="c-white">  Doors:           2</span>`);
+  addLine(`<span class="c-white">  Uptime:          14 days, 7 hours</span>`);
+  addLine('');
+  addLine(THIN_DIV);
+  addLine(`<span class="c-dim">  "Where the night owls roost and the bits flow free."</span>`);
+  addLine('');
+
+  await waitForInput('  Press [ENTER] for main menu...');
+  await mainMenu();
+}
+
+// ==================== GOODBYE ====================
+
+async function goodbye() {
+  currentScreen = 'goodbye';
+  clearScreen();
+
+  addLine('');
+  addLine('');
+  addLine(`<span class="c-cyan-b">  Thanks for calling ${BBS_NAME}, ${username}!</span>`);
+  addLine('');
+  addLine(OWL_ART);
+  addLine('');
+  addLine(`<span class="c-yellow">  "Until we meet again in the wires..."</span>`);
+  addLine('');
+  addLine(`<span class="c-white">  Call again soon!  ${BBS_NUMBER}</span>`);
+  addLine('');
+  await sleep(1500);
+  await typeLine('  NO CARRIER', 'c-red', 40);
+  await sleep(1000);
+  await typeLine('  ATH0', 'c-dim', 40);
+  await sleep(500);
+  await typeLine('  OK', 'c-dim', 40);
+  await sleep(2000);
+
+  clearScreen();
+  addLine('');
+  addLine('');
+  addLine(`<span class="c-dim">  C:\\BBS></span><span class="cursor-blink"></span>`);
+
+  // Allow reconnect
+  await sleep(3000);
+  addLine('');
+  addLine(`<span class="c-green">  [Click anywhere to reconnect]</span>`);
+
+  document.getElementById('monitor').addEventListener('click', async function reconnect() {
+    document.getElementById('monitor').removeEventListener('click', reconnect);
+    clearScreen();
+    await bootSequence();
+  }, { once: true });
+}
+
+// ==================== START ====================
+document.addEventListener('click', function init() {
+  document.removeEventListener('click', init);
+  bootSequence();
+}, { once: true });
+
+// Show initial prompt
+addLine('');
+addLine('');
+addLine(`<span class="c-green-b">  Click anywhere to power on...</span><span class="cursor-blink"></span>`);
+</script>
+</body>
+</html>
