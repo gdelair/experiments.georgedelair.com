@@ -49,6 +49,8 @@
     position: relative;
     width: 900px;
     height: 640px;
+    max-width: calc(100vw - 20px);
+    max-height: calc(100vh - 20px);
     background: var(--bg);
     border-radius: 18px;
     overflow: hidden;
@@ -228,6 +230,44 @@
   .glitch {
     animation: glitch 0.1s linear 3;
   }
+
+  /* Responsive layout */
+  @media (max-width: 768px) {
+    #monitor {
+      width: 100vw;
+      height: 100vh;
+      max-width: 100vw;
+      max-height: 100vh;
+      border-radius: 0;
+    }
+    body { font-size: 16px; }
+    #user-input { font-size: 16px; min-height: 44px; }
+    #monitor-label { display: none; }
+    #screen { -webkit-overflow-scrolling: touch; }
+  }
+
+  @media (max-width: 480px) {
+    body { font-size: 13px; }
+    #screen { inset: 6px; padding: 4px 6px; overflow-x: auto; }
+    .cursor-blink { width: 8px; height: 14px; }
+    #user-input { font-size: 16px; }
+  }
+
+  @media (max-width: 360px) {
+    body { font-size: 11px; }
+    #screen { padding: 2px 4px; }
+  }
+
+  @media (max-height: 500px) and (orientation: landscape) {
+    #monitor {
+      width: 100vw;
+      height: 100vh;
+      max-width: 100vw;
+      max-height: 100vh;
+      border-radius: 0;
+    }
+    #monitor-label { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -330,6 +370,39 @@ const promptText = inputArea.querySelector('.prompt-text');
 let inputCallback = null;
 let currentScreen = 'boot';
 let username = '';
+let gameScores = { numberOracle: null, shadowDungeon: null, blackjack: null, starTrader: null };
+let totalLogins = 0;
+let isReturningUser = false;
+
+const SAVE_KEY = 'nightowl_bbs_save';
+
+function saveState() {
+  try {
+    const state = {
+      version: 1,
+      username,
+      userMessages,
+      gameScores,
+      totalLogins,
+      lastLogin: new Date().toISOString()
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+  } catch (e) {
+    // Private browsing or quota exceeded
+  }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    const state = JSON.parse(raw);
+    if (!state || state.version !== 1 || !state.username) return null;
+    return state;
+  } catch (e) {
+    return null;
+  }
+}
 
 function scrollToBottom() {
   screen.scrollTop = screen.scrollHeight;
@@ -509,8 +582,42 @@ const DOOR_ART = `<span class="c-magenta">
     +-----------------------------------------+
 </span>`;
 
-const DIVIDER = `<span class="c-cyan">${'='.repeat(70)}</span>`;
-const THIN_DIV = `<span class="c-dim">${'-'.repeat(70)}</span>`;
+const BLACKJACK_ART = `<span class="c-magenta">
+    +-----------------------------------------+
+    |  <span class="c-red">*** BBS BLACKJACK 21 ***</span>                |
+    |  <span class="c-white">Beat the dealer, win credits!</span>          |
+    |  <span class="c-dim">v1.0 by PhantomSysop (c)1996</span>           |
+    +-----------------------------------------+
+</span>`;
+
+const STARTRADER_ART = `<span class="c-magenta">
+    +-----------------------------------------+
+    |  <span class="c-cyan-b">*** STAR TRADER ***</span>                    |
+    |  <span class="c-white">Galactic Commerce Simulator</span>            |
+    |  <span class="c-dim">v2.0 by PhantomSysop (c)1996</span>           |
+    +-----------------------------------------+
+</span>`;
+
+function measureDivWidth() {
+  const el = document.getElementById('screen');
+  if (!el) return 70;
+  const measure = document.createElement('span');
+  measure.style.cssText = 'visibility:hidden;position:absolute;white-space:pre;font-family:VT323,monospace;font-size:inherit';
+  measure.textContent = 'M';
+  el.appendChild(measure);
+  const charW = measure.getBoundingClientRect().width || 10;
+  el.removeChild(measure);
+  const availW = el.clientWidth - 24;
+  return Math.max(20, Math.min(70, Math.floor(availW / charW) - 2));
+}
+
+function DIVIDER() {
+  return `<span class="c-cyan">${'='.repeat(measureDivWidth())}</span>`;
+}
+
+function THIN_DIV() {
+  return `<span class="c-dim">${'-'.repeat(measureDivWidth())}</span>`;
+}
 
 // ==================== SCREENS ====================
 
@@ -538,9 +645,9 @@ async function bootSequence() {
   await typeLine('C:\\BBS>NIGHTOWL.EXE /init', 'c-amber', 30);
   await sleep(400);
   await typeLine('', '', 0);
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine(`<span class="c-yellow">  ${BBS_NAME} - Initializing...</span>`);
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   await sleep(300);
 
   const initSteps = [
@@ -592,25 +699,62 @@ async function loginScreen() {
   addLine('');
   addLine(OWL_ART);
   addLine('');
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine(`<span class="c-white">  Node 1  |  28800 bps  |  ANSI Detected  |  ${new Date().toLocaleDateString('en-US')}</span>`);
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine('');
   addLine(`<span class="c-yellow">  "The night belongs to those who dream in code."</span>`);
   addLine('');
 
-  const name = await waitForInput('  Enter your handle: ');
-  if (!name) {
-    username = 'Guest';
+  const saved = loadState();
+
+  if (saved) {
+    addLine(`<span class="c-amber">  Returning caller detected: <span class="c-cyan-b">${escapeHtml(saved.username)}</span></span>`);
+    addLine(`<span class="c-dim">  Last login: ${new Date(saved.lastLogin).toLocaleString()}</span>`);
+    addLine('');
+    const reuse = await waitForInput('  Continue as ' + escapeHtml(saved.username) + '? [Y/N]: ');
+
+    if (reuse.toUpperCase() === 'Y') {
+      username = saved.username;
+      isReturningUser = true;
+      userMessages.length = 0;
+      saved.userMessages.forEach(m => userMessages.push(m));
+      gameScores = saved.gameScores || gameScores;
+      totalLogins = (saved.totalLogins || 0) + 1;
+    } else {
+      const name = await waitForInput('  Enter your handle: ');
+      username = name ? escapeHtml(name) : 'Guest';
+      totalLogins = 1;
+    }
   } else {
-    username = escapeHtml(name);
+    const name = await waitForInput('  Enter your handle: ');
+    username = name ? escapeHtml(name) : 'Guest';
+    totalLogins = 1;
   }
+
+  saveState();
 
   playBeep();
   addLine('');
   await typeLine(`  Checking user database...`, 'c-dim', 20);
   await sleep(400);
-  await typeLine(`  Welcome aboard, ${username}!`, 'c-green-b', 20);
+
+  if (isReturningUser) {
+    await typeLine(`  Welcome back, ${username}!`, 'c-green-b', 20);
+    await sleep(300);
+    addLine(`<span class="c-white">  This is login #<span class="c-yellow">${totalLogins}</span> for your account.</span>`);
+    const scores = [];
+    if (gameScores.numberOracle) scores.push('Oracle: ' + gameScores.numberOracle);
+    if (gameScores.shadowDungeon) scores.push('Dungeon: ' + gameScores.shadowDungeon);
+    if (gameScores.blackjack) scores.push('Blackjack: ' + gameScores.blackjack);
+    if (gameScores.starTrader) scores.push('Trader: ' + gameScores.starTrader);
+    if (scores.length > 0) {
+      addLine(`<span class="c-dim">  Game records: ${scores.join(' | ')}</span>`);
+    }
+  } else {
+    await typeLine(`  Welcome aboard, ${username}!`, 'c-green-b', 20);
+  }
+
   await sleep(300);
   addLine(`<span class="c-white">  Last caller was: <span class="c-cyan">NeonDrifter</span> at <span class="c-amber">11:42 PM</span></span>`);
   addLine(`<span class="c-white">  Total calls to system: <span class="c-yellow">2,847</span></span>`);
@@ -631,9 +775,9 @@ async function mainMenu() {
   currentScreen = 'main';
   clearScreen();
 
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine(`<span class="c-cyan-b">  ${BBS_NAME}</span><span class="c-white"> - Main Menu</span><span class="c-dim">                   Node 1 | ${username}</span>`);
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine('');
   addLine(`<span class="c-yellow">  [${'M'.fontcolor || 'M'}]</span><span class="c-white">  <span class="c-cyan-b">[M]</span> Message Boards     - Read & post messages</span>`);
   addLine(`<span class="c-white">  <span class="c-cyan-b">[F]</span> File Library       - Browse & download files</span>`);
@@ -643,9 +787,9 @@ async function mainMenu() {
   addLine(`<span class="c-white">  <span class="c-cyan-b">[I]</span> System Info        - About this BBS</span>`);
   addLine(`<span class="c-white">  <span class="c-cyan-b">[G]</span> Goodbye            - Logoff</span>`);
   addLine('');
-  addLine(THIN_DIV);
+  addLine(THIN_DIV());
   addLine(`<span class="c-dim">  Time remaining: 58 min  |  Calls today: 23  |  Files: 142</span>`);
-  addLine(THIN_DIV);
+  addLine(THIN_DIV());
   addLine('');
 
   const choice = await waitForInput('  Command [M,F,D,U,C,I,G]: ');
@@ -673,9 +817,9 @@ async function messageBoardMenu() {
   currentScreen = 'msgboards';
   clearScreen();
 
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine(`<span class="c-cyan-b">  Message Boards</span>`);
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine('');
   addLine(`<span class="c-white">  <span class="c-cyan-b">[1]</span> General Discussion   (${messageBoards.general.messages.length + userMessages.filter(m => m.board === 'general').length} msgs)</span>`);
   addLine(`<span class="c-white">  <span class="c-cyan-b">[2]</span> Tech Talk            (${messageBoards.tech.messages.length + userMessages.filter(m => m.board === 'tech').length} msgs)</span>`);
@@ -698,12 +842,12 @@ async function viewBoard(boardKey) {
   const board = messageBoards[boardKey];
   const allMessages = [...board.messages, ...userMessages.filter(m => m.board === boardKey)];
 
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine(`<span class="c-cyan-b">  ${board.name}</span><span class="c-dim">  (${allMessages.length} messages)</span>`);
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine('');
   addLine(`<span class="c-amber">  ##  Date      From             Subject</span>`);
-  addLine(THIN_DIV);
+  addLine(THIN_DIV());
 
   allMessages.forEach((msg, i) => {
     const num = String(i + 1).padStart(2, ' ');
@@ -735,11 +879,11 @@ async function viewBoard(boardKey) {
 async function readMessage(boardKey, msg) {
   clearScreen();
 
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine(`<span class="c-amber">  From:    <span class="c-cyan-b">${escapeHtml(msg.from)}</span></span>`);
   addLine(`<span class="c-amber">  Date:    <span class="c-white">${msg.date}</span></span>`);
   addLine(`<span class="c-amber">  Subject: <span class="c-white-b">${escapeHtml(msg.subject)}</span></span>`);
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine('');
 
   const lines = msg.body.split('\n');
@@ -748,7 +892,7 @@ async function readMessage(boardKey, msg) {
   }
 
   addLine('');
-  addLine(THIN_DIV);
+  addLine(THIN_DIV());
   addLine('');
 
   await waitForInput('  Press [ENTER] to go back...');
@@ -758,9 +902,9 @@ async function readMessage(boardKey, msg) {
 async function postMessage(boardKey) {
   clearScreen();
 
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine(`<span class="c-cyan-b">  Post New Message</span><span class="c-dim"> - ${messageBoards[boardKey].name}</span>`);
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine('');
 
   const subject = await waitForInput('  Subject: ');
@@ -781,6 +925,7 @@ async function postMessage(boardKey) {
       subject: subject,
       body: body
     });
+    saveState();
 
     addLine('');
     await typeLine('  Saving message...', 'c-dim', 20);
@@ -799,12 +944,12 @@ async function fileLibraryScreen() {
   currentScreen = 'files';
   clearScreen();
 
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine(`<span class="c-cyan-b">  File Library</span><span class="c-dim">  (${fileLibrary.length} files, 5.7MB total)</span>`);
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine('');
   addLine(`<span class="c-amber">  Filename         Size     Date      DLs  Description</span>`);
-  addLine(THIN_DIV);
+  addLine(THIN_DIV());
 
   fileLibrary.forEach(f => {
     const name = f.name.padEnd(17, ' ');
@@ -814,7 +959,7 @@ async function fileLibraryScreen() {
   });
 
   addLine('');
-  addLine(THIN_DIV);
+  addLine(THIN_DIV());
   addLine(`<span class="c-dim">  Upload/Download ratio: 1:5  |  Credits: 142</span>`);
   addLine('');
 
@@ -869,20 +1014,24 @@ async function doorGameMenu() {
   currentScreen = 'doors';
   clearScreen();
 
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine(`<span class="c-cyan-b">  Door Games</span>`);
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine('');
   addLine(`<span class="c-white">  <span class="c-cyan-b">[1]</span> Shadow Dungeon      - Text adventure RPG</span>`);
   addLine(`<span class="c-white">  <span class="c-cyan-b">[2]</span> Number Oracle       - Guess the number!</span>`);
+  addLine(`<span class="c-white">  <span class="c-cyan-b">[3]</span> BBS Blackjack 21   - Beat the dealer!</span>`);
+  addLine(`<span class="c-white">  <span class="c-cyan-b">[4]</span> Star Trader         - Galactic commerce sim</span>`);
   addLine(`<span class="c-white">  <span class="c-cyan-b">[Q]</span> Return to Main Menu</span>`);
   addLine('');
 
-  const choice = await waitForInput('  Select game [1-2,Q]: ');
+  const choice = await waitForInput('  Select game [1-4,Q]: ');
 
   switch (choice) {
     case '1': await shadowDungeon(); break;
     case '2': await numberOracle(); break;
+    case '3': await blackjackGame(); break;
+    case '4': await starTraderGame(); break;
     default: await mainMenu();
   }
 }
@@ -981,6 +1130,8 @@ async function shadowDungeon() {
             gold += 100;
             addLine('');
             addLine(`<span class="c-white">  Final score: ${gold} gold, ${hp} HP remaining</span>`);
+            gameScores.shadowDungeon = 'VICTORY (' + gold + 'g, ' + hp + 'HP)';
+            saveState();
             addLine('');
             await waitForInput('  Press [ENTER] to exit game...');
             await doorGameMenu();
@@ -991,6 +1142,8 @@ async function shadowDungeon() {
               addLine(`<span class="c-red">  The wizard blasts you with dark magic!</span>`);
               addLine(`<span class="c-red">  *** YOU HAVE DIED ***</span>`);
               addLine(`<span class="c-dim">  Final gold: ${gold}</span>`);
+              gameScores.shadowDungeon = 'DEFEATED (' + gold + 'g)';
+              saveState();
               addLine('');
               await waitForInput('  Press [ENTER] to exit...');
               await doorGameMenu();
@@ -1002,6 +1155,8 @@ async function shadowDungeon() {
             if (hp <= 0) {
               addLine(`<span class="c-red">  The wizard destroys you with a fireball!</span>`);
               addLine(`<span class="c-red">  *** YOU HAVE DIED ***</span>`);
+              gameScores.shadowDungeon = 'DEFEATED (wizard)';
+              saveState();
               addLine('');
               await waitForInput('  Press [ENTER] to exit...');
               await doorGameMenu();
@@ -1019,9 +1174,9 @@ async function shadowDungeon() {
   async function gameLoop() {
     while (true) {
       clearScreen();
-      addLine(THIN_DIV);
+      addLine(THIN_DIV());
       addLine(`<span class="c-amber">  SHADOW DUNGEON</span><span class="c-white">  HP: <span class="${hp > 10 ? 'c-green-b' : 'c-red'}">${hp}</span>  Gold: <span class="c-yellow">${gold}</span>  Items: ${hasSword ? '<span class="c-amber">Sword</span>' : ''}${hasKey ? ' <span class="c-yellow">Key</span>' : ''}${!hasSword && !hasKey ? '<span class="c-dim">none</span>' : ''}</span>`);
-      addLine(THIN_DIV);
+      addLine(THIN_DIV());
       addLine('');
 
       const r = rooms[room];
@@ -1062,6 +1217,8 @@ async function shadowDungeon() {
 
       if (hp <= 0) {
         addLine(`<span class="c-red">  *** YOU HAVE DIED ***</span>`);
+        gameScores.shadowDungeon = 'DEFEATED (' + gold + 'g)';
+        saveState();
         await sleep(1000);
         await waitForInput('  Press [ENTER]...');
         await doorGameMenu();
@@ -1077,10 +1234,10 @@ async function shadowDungeon() {
 async function numberOracle() {
   clearScreen();
 
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine(`<span class="c-magenta">  *** THE NUMBER ORACLE ***</span>`);
   addLine(`<span class="c-dim">  v2.1 - A game of mystic deduction</span>`);
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine('');
   await typeLine('  The Oracle has chosen a number between 1 and 100.', 'c-white', 15);
   await typeLine('  You have 7 attempts to divine the answer.', 'c-white', 15);
@@ -1109,6 +1266,8 @@ async function numberOracle() {
       playBeep();
       const score = (7 - attempts) <= 3 ? 'LEGENDARY' : (7 - attempts) <= 5 ? 'SKILLED' : 'LUCKY';
       addLine(`<span class="c-cyan-b">  Rating: ${score}</span>`);
+      gameScores.numberOracle = score + ' (' + (7 - attempts) + ' guesses)';
+      saveState();
       addLine('');
       await waitForInput('  Press [ENTER] to continue...');
       await doorGameMenu();
@@ -1123,8 +1282,437 @@ async function numberOracle() {
 
   addLine(`<span class="c-red">  The Oracle grows silent. The number was ${target}.</span>`);
   addLine(`<span class="c-dim">  Better luck next time, mortal.</span>`);
+  gameScores.numberOracle = 'DEFEATED';
+  saveState();
   addLine('');
   await waitForInput('  Press [ENTER] to continue...');
+  await doorGameMenu();
+}
+
+// ---- BBS BLACKJACK 21 ----
+async function blackjackGame() {
+  clearScreen();
+  addLine(BLACKJACK_ART);
+  addLine('');
+  await typeLine('  Loading BBS BLACKJACK 21...', 'c-dim', 20);
+  await typeLine('  Establishing FOSSIL driver link...', 'c-dim', 20);
+  await sleep(500);
+  clearScreen();
+
+  let credits = 100;
+  let wins = 0, losses = 0, pushes = 0;
+
+  const suits = ['\u2660', '\u2665', '\u2666', '\u2663'];
+  const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+
+  function newDeck() {
+    const deck = [];
+    for (const s of suits) for (const r of ranks) deck.push({ rank: r, suit: s });
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    return deck;
+  }
+
+  function cardValue(card) {
+    if (['J', 'Q', 'K'].includes(card.rank)) return 10;
+    if (card.rank === 'A') return 11;
+    return parseInt(card.rank);
+  }
+
+  function handValue(hand) {
+    let total = hand.reduce((s, c) => s + cardValue(c), 0);
+    let aces = hand.filter(c => c.rank === 'A').length;
+    while (total > 21 && aces > 0) { total -= 10; aces--; }
+    return total;
+  }
+
+  function formatCard(card) {
+    const isRed = card.suit === '\u2665' || card.suit === '\u2666';
+    const cls = isRed ? 'c-red' : 'c-white-b';
+    return `<span class="${cls}">[${card.rank}${card.suit}]</span>`;
+  }
+
+  function formatHand(hand) {
+    return hand.map(formatCard).join(' ');
+  }
+
+  while (credits > 0) {
+    clearScreen();
+    addLine(BLACKJACK_ART);
+    addLine('');
+    addLine(`<span class="c-amber">  Credits: <span class="c-yellow">${credits}</span>  |  W: <span class="c-green-b">${wins}</span>  L: <span class="c-red">${losses}</span>  P: <span class="c-white">${pushes}</span></span>`);
+    addLine(THIN_DIV());
+    addLine('');
+
+    const betStr = await waitForInput('  Place your bet (1-' + credits + ') or [Q]uit: ');
+    if (betStr.toUpperCase() === 'Q') break;
+
+    const bet = parseInt(betStr);
+    if (isNaN(bet) || bet < 1 || bet > credits) {
+      playError();
+      addLine(`<span class="c-red">  Invalid bet!</span>`);
+      await sleep(800);
+      continue;
+    }
+
+    const deck = newDeck();
+    const playerHand = [deck.pop(), deck.pop()];
+    const dealerHand = [deck.pop(), deck.pop()];
+
+    let playerBust = false;
+    while (true) {
+      clearScreen();
+      addLine(THIN_DIV());
+      addLine(`<span class="c-amber">  BBS BLACKJACK 21</span><span class="c-white">  Bet: <span class="c-yellow">${bet}</span>  Credits: <span class="c-yellow">${credits}</span></span>`);
+      addLine(THIN_DIV());
+      addLine('');
+      addLine(`<span class="c-dim">  Dealer: </span>${formatCard(dealerHand[0])} <span class="c-dim">[??]</span>`);
+      addLine('');
+      addLine(`<span class="c-cyan-b">  Your hand: </span>${formatHand(playerHand)}  <span class="c-amber">(${handValue(playerHand)})</span>`);
+      addLine('');
+
+      if (handValue(playerHand) === 21) {
+        addLine(`<span class="c-yellow">  BLACKJACK!</span>`);
+        break;
+      }
+
+      if (handValue(playerHand) > 21) {
+        playerBust = true;
+        addLine(`<span class="c-red">  BUST!</span>`);
+        break;
+      }
+
+      const action = await waitForInput('  [H]it or [S]tand? ');
+      if (action.toUpperCase() === 'S') break;
+      if (action.toUpperCase() === 'H') {
+        playerHand.push(deck.pop());
+      }
+    }
+
+    await sleep(500);
+
+    if (playerBust) {
+      credits -= bet;
+      losses++;
+      addLine(`<span class="c-red">  You lose ${bet} credits!</span>`);
+    } else {
+      addLine('');
+      addLine(`<span class="c-amber">  Dealer reveals: </span>${formatHand(dealerHand)}  <span class="c-amber">(${handValue(dealerHand)})</span>`);
+      await sleep(600);
+
+      while (handValue(dealerHand) < 17) {
+        dealerHand.push(deck.pop());
+        addLine(`<span class="c-dim">  Dealer hits: </span>${formatHand(dealerHand)}  <span class="c-amber">(${handValue(dealerHand)})</span>`);
+        await sleep(600);
+      }
+
+      const pv = handValue(playerHand);
+      const dv = handValue(dealerHand);
+
+      addLine('');
+      if (dv > 21) {
+        addLine(`<span class="c-green-b">  Dealer BUSTS! You win ${bet} credits!</span>`);
+        credits += bet;
+        wins++;
+      } else if (pv > dv) {
+        addLine(`<span class="c-green-b">  You win ${bet} credits!</span>`);
+        credits += bet;
+        wins++;
+      } else if (pv < dv) {
+        addLine(`<span class="c-red">  Dealer wins. You lose ${bet} credits.</span>`);
+        credits -= bet;
+        losses++;
+      } else {
+        addLine(`<span class="c-yellow">  Push! Bet returned.</span>`);
+        pushes++;
+      }
+    }
+
+    playBeep();
+    await sleep(500);
+    addLine('');
+    await waitForInput('  Press [ENTER] for next hand...');
+  }
+
+  // Session summary
+  clearScreen();
+  addLine(THIN_DIV());
+  addLine(`<span class="c-cyan-b">  SESSION SUMMARY</span>`);
+  addLine(THIN_DIV());
+  addLine('');
+  addLine(`<span class="c-white">  Hands played:  ${wins + losses + pushes}</span>`);
+  addLine(`<span class="c-green-b">  Wins:          ${wins}</span>`);
+  addLine(`<span class="c-red">  Losses:        ${losses}</span>`);
+  addLine(`<span class="c-white">  Pushes:        ${pushes}</span>`);
+  addLine(`<span class="c-amber">  Final credits: <span class="c-yellow">${credits}</span></span>`);
+  addLine('');
+
+  const rating = credits >= 200 ? 'HIGH ROLLER' : credits >= 150 ? 'CARD SHARK' : credits >= 100 ? 'EVEN STEVEN' : credits > 0 ? 'DOWN ON LUCK' : 'BROKE';
+  addLine(`<span class="c-cyan-b">  Rating: ${rating}</span>`);
+
+  gameScores.blackjack = credits + ' credits (' + wins + 'W/' + losses + 'L)';
+  saveState();
+
+  addLine('');
+  await waitForInput('  Press [ENTER] to exit...');
+  await doorGameMenu();
+}
+
+// ---- STAR TRADER ----
+async function starTraderGame() {
+  clearScreen();
+  addLine(STARTRADER_ART);
+  addLine('');
+  await typeLine('  Loading STAR TRADER...', 'c-dim', 20);
+  await typeLine('  Initializing galactic trade routes...', 'c-dim', 20);
+  await sleep(500);
+  clearScreen();
+
+  const sectors = [
+    { name: 'Terra Prime', type: 'Agricultural', prices: { food: 0.6, ore: 1.2, tech: 1.4 } },
+    { name: 'Ferrous IV', type: 'Mining', prices: { food: 1.3, ore: 0.5, tech: 1.2 } },
+    { name: 'Nexus Station', type: 'Industrial', prices: { food: 1.1, ore: 0.8, tech: 0.7 } },
+    { name: 'Outer Reach', type: 'Frontier', prices: { food: 1.5, ore: 1.4, tech: 1.6 } },
+    { name: 'Velvet Spire', type: 'Luxury', prices: { food: 0.9, ore: 1.1, tech: 0.6 } },
+    { name: 'Shadow Port', type: 'Black Market', prices: { food: 1.2, ore: 1.3, tech: 1.1 } }
+  ];
+
+  const basePrices = { food: 20, ore: 35, tech: 60 };
+
+  let credits = 500;
+  let fuel = 20;
+  let cargo = { food: 0, ore: 0, tech: 0 };
+  let cargoCapacity = 50;
+  let currentSector = 0;
+  let turnsLeft = 30;
+
+  function totalCargo() { return cargo.food + cargo.ore + cargo.tech; }
+
+  function getPrice(commodity, sectorIdx) {
+    const sector = sectors[sectorIdx];
+    const base = basePrices[commodity];
+    const multiplier = sector.prices[commodity];
+    const variance = 0.8 + Math.random() * 0.4;
+    return Math.round(base * multiplier * variance);
+  }
+
+  const events = [
+    { text: 'Space pirates attack! You jettison cargo to escape!', effect: () => {
+      const types = ['food', 'ore', 'tech'].filter(c => cargo[c] > 0);
+      if (types.length > 0) {
+        const t = types[Math.floor(Math.random() * types.length)];
+        const lost = Math.min(cargo[t], Math.ceil(cargo[t] * 0.3));
+        cargo[t] -= lost;
+        return `Lost ${lost} units of ${t}!`;
+      }
+      return 'Lucky - your hold was empty!';
+    }},
+    { text: 'You find a derelict ship! Salvage yields goods!', effect: () => {
+      const types = ['food', 'ore', 'tech'];
+      const t = types[Math.floor(Math.random() * types.length)];
+      const found = Math.min(5 + Math.floor(Math.random() * 6), cargoCapacity - totalCargo());
+      if (found > 0) { cargo[t] += found; return `Found ${found} units of ${t}!`; }
+      return 'But your cargo hold is full!';
+    }},
+    { text: 'A trader tips you off about prices nearby!', effect: () => {
+      const s = sectors[Math.floor(Math.random() * sectors.length)];
+      const commodities = ['food', 'ore', 'tech'];
+      const c = commodities[Math.floor(Math.random() * commodities.length)];
+      return `"${s.name} is paying top credit for ${c} right now!"`;
+    }},
+    { text: 'Ion storm! Your fuel cells are partially drained!', effect: () => {
+      const lost = Math.min(fuel, 2 + Math.floor(Math.random() * 3));
+      fuel -= lost;
+      return `Lost ${lost} fuel!`;
+    }},
+    { text: 'You discover a fuel cache floating in space!', effect: () => {
+      const found = 3 + Math.floor(Math.random() * 4);
+      fuel += found;
+      return `Gained ${found} fuel!`;
+    }}
+  ];
+
+  while (turnsLeft > 0 && fuel > 0) {
+    const currentPrices = {};
+    for (const c of ['food', 'ore', 'tech']) {
+      currentPrices[c] = getPrice(c, currentSector);
+    }
+
+    clearScreen();
+    const sec = sectors[currentSector];
+    addLine(THIN_DIV());
+    addLine(`<span class="c-amber">  STAR TRADER</span><span class="c-white">  Sector: <span class="c-cyan-b">${sec.name}</span> (${sec.type})  Turn: <span class="c-yellow">${31 - turnsLeft}/30</span></span>`);
+    addLine(THIN_DIV());
+    addLine('');
+    addLine(`<span class="c-white">  Credits: <span class="c-yellow">${credits}</span>  Fuel: <span class="c-cyan">${fuel}</span>  Cargo: <span class="c-green">${totalCargo()}/${cargoCapacity}</span></span>`);
+    addLine('');
+    addLine(`<span class="c-amber">  === Market Prices ===</span>`);
+    addLine(`<span class="c-white">  Food: <span class="c-green-b">${currentPrices.food}</span> cr   Ore: <span class="c-green-b">${currentPrices.ore}</span> cr   Tech: <span class="c-green-b">${currentPrices.tech}</span> cr</span>`);
+    addLine('');
+    addLine(`<span class="c-dim">  Cargo hold: Food=${cargo.food} Ore=${cargo.ore} Tech=${cargo.tech}</span>`);
+    addLine('');
+    addLine(`<span class="c-cyan-b">  [B]</span><span class="c-white">uy  </span><span class="c-cyan-b">[S]</span><span class="c-white">ell  </span><span class="c-cyan-b">[T]</span><span class="c-white">ravel  </span><span class="c-cyan-b">[M]</span><span class="c-white">ap  </span><span class="c-cyan-b">[Q]</span><span class="c-white">uit</span>`);
+    addLine('');
+
+    const cmd = await waitForInput('  Command: ');
+
+    switch (cmd.toUpperCase()) {
+      case 'B': {
+        addLine(`<span class="c-white">  Buy what? [F]ood [O]re [T]ech</span>`);
+        const what = await waitForInput('  > ');
+        const commodityMap = { F: 'food', O: 'ore', T: 'tech' };
+        const commodity = commodityMap[what.toUpperCase()];
+        if (!commodity) { playError(); addLine(`<span class="c-red">  Invalid choice.</span>`); await sleep(500); break; }
+
+        const price = currentPrices[commodity];
+        const maxAfford = Math.floor(credits / price);
+        const maxCargo = cargoCapacity - totalCargo();
+        const maxBuy = Math.min(maxAfford, maxCargo);
+
+        if (maxBuy <= 0) {
+          addLine(`<span class="c-red">  Can't buy: ${maxAfford === 0 ? 'not enough credits' : 'cargo hold full'}!</span>`);
+          await sleep(800);
+          break;
+        }
+
+        const amtStr = await waitForInput(`  How many ${commodity}? (max ${maxBuy}): `);
+        const amt = parseInt(amtStr);
+        if (isNaN(amt) || amt < 1 || amt > maxBuy) { playError(); break; }
+
+        credits -= amt * price;
+        cargo[commodity] += amt;
+        addLine(`<span class="c-green-b">  Bought ${amt} ${commodity} for ${amt * price} credits.</span>`);
+        playBeep();
+        await sleep(600);
+        break;
+      }
+      case 'S': {
+        addLine(`<span class="c-white">  Sell what? [F]ood [O]re [T]ech</span>`);
+        const what = await waitForInput('  > ');
+        const commodityMap = { F: 'food', O: 'ore', T: 'tech' };
+        const commodity = commodityMap[what.toUpperCase()];
+        if (!commodity) { playError(); addLine(`<span class="c-red">  Invalid choice.</span>`); await sleep(500); break; }
+
+        if (cargo[commodity] <= 0) {
+          addLine(`<span class="c-red">  You have no ${commodity} to sell!</span>`);
+          await sleep(800);
+          break;
+        }
+
+        const price = currentPrices[commodity];
+        const amtStr = await waitForInput(`  How many ${commodity}? (have ${cargo[commodity]}): `);
+        const amt = parseInt(amtStr);
+        if (isNaN(amt) || amt < 1 || amt > cargo[commodity]) { playError(); break; }
+
+        credits += amt * price;
+        cargo[commodity] -= amt;
+        addLine(`<span class="c-green-b">  Sold ${amt} ${commodity} for ${amt * price} credits!</span>`);
+        playBeep();
+        await sleep(600);
+        break;
+      }
+      case 'T': {
+        addLine(`<span class="c-amber">  === Travel to ===</span>`);
+        sectors.forEach((s, i) => {
+          if (i !== currentSector) {
+            addLine(`<span class="c-white">  <span class="c-cyan-b">[${i + 1}]</span> ${s.name} (${s.type})</span>`);
+          }
+        });
+        addLine('');
+
+        const dest = await waitForInput('  Destination: ');
+        const destIdx = parseInt(dest) - 1;
+        if (isNaN(destIdx) || destIdx < 0 || destIdx >= sectors.length || destIdx === currentSector) {
+          playError();
+          addLine(`<span class="c-red">  Invalid destination.</span>`);
+          await sleep(500);
+          break;
+        }
+
+        if (fuel < 1) {
+          addLine(`<span class="c-red">  Not enough fuel!</span>`);
+          await sleep(800);
+          break;
+        }
+
+        fuel--;
+        turnsLeft--;
+        currentSector = destIdx;
+        addLine(`<span class="c-cyan">  Traveling to ${sectors[destIdx].name}...</span>`);
+        await sleep(600);
+
+        // Random event (20% chance)
+        if (Math.random() < 0.2) {
+          const event = events[Math.floor(Math.random() * events.length)];
+          addLine('');
+          addLine(`<span class="c-yellow">  *** EVENT ***</span>`);
+          addLine(`<span class="c-amber">  ${event.text}</span>`);
+          const result = event.effect();
+          addLine(`<span class="c-white">  ${result}</span>`);
+          await sleep(1500);
+        }
+
+        break;
+      }
+      case 'M': {
+        addLine('');
+        addLine(`<span class="c-amber">  === Galactic Map ===</span>`);
+        sectors.forEach((s, i) => {
+          const marker = i === currentSector ? ' <-- YOU' : '';
+          addLine(`<span class="c-white">  [${i + 1}] ${s.name.padEnd(16)} ${s.type.padEnd(14)}<span class="c-cyan-b">${marker}</span></span>`);
+        });
+        addLine('');
+        await waitForInput('  Press [ENTER]...');
+        break;
+      }
+      case 'Q': {
+        turnsLeft = 0;
+        break;
+      }
+      default: {
+        playError();
+        addLine(`<span class="c-red">  Unknown command.</span>`);
+        await sleep(500);
+      }
+    }
+  }
+
+  // End game
+  clearScreen();
+  addLine(THIN_DIV());
+  addLine(`<span class="c-cyan-b">  STAR TRADER - FINAL REPORT</span>`);
+  addLine(THIN_DIV());
+  addLine('');
+
+  let finalCargoValue = 0;
+  for (const c of ['food', 'ore', 'tech']) {
+    finalCargoValue += cargo[c] * basePrices[c];
+  }
+  const finalScore = credits + finalCargoValue;
+
+  addLine(`<span class="c-white">  Credits:     <span class="c-yellow">${credits}</span></span>`);
+  addLine(`<span class="c-white">  Cargo value: <span class="c-yellow">${finalCargoValue}</span> (at base prices)</span>`);
+  addLine(`<span class="c-white">  Final score: <span class="c-yellow">${finalScore}</span></span>`);
+  addLine('');
+
+  let rating;
+  if (finalScore <= 0) rating = 'BANKRUPT';
+  else if (finalScore < 300) rating = 'SPACE BUM';
+  else if (finalScore < 500) rating = 'DECKHAND';
+  else if (finalScore < 750) rating = 'MERCHANT';
+  else if (finalScore < 1000) rating = 'MOGUL';
+  else if (finalScore < 1500) rating = 'TYCOON';
+  else rating = 'TRADE BARON';
+
+  addLine(`<span class="c-cyan-b">  Rating: ${rating}</span>`);
+
+  gameScores.starTrader = finalScore + ' cr (' + rating + ')';
+  saveState();
+
+  addLine('');
+  await waitForInput('  Press [ENTER] to exit...');
   await doorGameMenu();
 }
 
@@ -1134,12 +1722,12 @@ async function userListScreen() {
   currentScreen = 'users';
   clearScreen();
 
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine(`<span class="c-cyan-b">  User List</span><span class="c-dim">  (${userList.length} registered users)</span>`);
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine('');
   addLine(`<span class="c-amber">  Handle           Level      Calls  Last On     Location</span>`);
-  addLine(THIN_DIV);
+  addLine(THIN_DIV());
 
   for (const u of userList) {
     const name = u.name.padEnd(17, ' ');
@@ -1150,7 +1738,7 @@ async function userListScreen() {
   }
 
   addLine('');
-  addLine(THIN_DIV);
+  addLine(THIN_DIV());
   addLine('');
 
   await waitForInput('  Press [ENTER] for main menu...');
@@ -1163,9 +1751,9 @@ async function sysopChat() {
   currentScreen = 'chat';
   clearScreen();
 
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine(`<span class="c-cyan-b">  Chat with Sysop</span>`);
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine('');
   await typeLine('  Paging Sysop...', 'c-amber', 25);
 
@@ -1218,9 +1806,9 @@ async function systemInfo() {
   currentScreen = 'info';
   clearScreen();
 
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine(`<span class="c-cyan-b">  System Information</span>`);
-  addLine(DIVIDER);
+  addLine(DIVIDER());
   addLine('');
   addLine(`<span class="c-amber">  BBS Name:</span><span class="c-white-b">      ${BBS_NAME}</span>`);
   addLine(`<span class="c-amber">  Phone:</span><span class="c-white">          ${BBS_NUMBER}</span>`);
@@ -1229,26 +1817,26 @@ async function systemInfo() {
   addLine(`<span class="c-amber">  Established:</span><span class="c-white">    March 15, 1994</span>`);
   addLine(`<span class="c-amber">  Location:</span><span class="c-white">       New Orleans, Louisiana</span>`);
   addLine('');
-  addLine(THIN_DIV);
+  addLine(THIN_DIV());
   addLine(`<span class="c-yellow">  HARDWARE</span>`);
-  addLine(THIN_DIV);
+  addLine(THIN_DIV());
   addLine(`<span class="c-white">  CPU:            Intel Pentium 133MHz</span>`);
   addLine(`<span class="c-white">  RAM:            16MB EDO</span>`);
   addLine(`<span class="c-white">  Storage:        1.6GB Western Digital + 540MB Maxtor</span>`);
   addLine(`<span class="c-white">  Modem:          USRobotics Sportster 28.8k (x4 lines)</span>`);
   addLine(`<span class="c-white">  OS:             MS-DOS 6.22 / DESQview 2.80</span>`);
   addLine('');
-  addLine(THIN_DIV);
+  addLine(THIN_DIV());
   addLine(`<span class="c-yellow">  STATISTICS</span>`);
-  addLine(THIN_DIV);
+  addLine(THIN_DIV());
   addLine(`<span class="c-white">  Total Users:     10</span>`);
   addLine(`<span class="c-white">  Total Calls:     2,847</span>`);
   addLine(`<span class="c-white">  Files Online:    142 (5.7MB)</span>`);
   addLine(`<span class="c-white">  Messages:        ${Object.values(messageBoards).reduce((a, b) => a + b.messages.length, 0) + userMessages.length}</span>`);
-  addLine(`<span class="c-white">  Doors:           2</span>`);
+  addLine(`<span class="c-white">  Doors:           4</span>`);
   addLine(`<span class="c-white">  Uptime:          14 days, 7 hours</span>`);
   addLine('');
-  addLine(THIN_DIV);
+  addLine(THIN_DIV());
   addLine(`<span class="c-dim">  "Where the night owls roost and the bits flow free."</span>`);
   addLine('');
 
