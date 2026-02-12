@@ -202,10 +202,6 @@
 
 /* Eject button */
 #eject-btn {
-    position: absolute;
-    right: 24px;
-    top: 50%;
-    transform: translateY(-50%);
     font-size: 7px;
     color: var(--snes-gray-darker);
     letter-spacing: 1px;
@@ -215,6 +211,9 @@
     border-radius: 2px;
     border: 1px solid #aaa;
     transition: all 0.2s;
+    margin-left: 8px;
+    align-self: center;
+    white-space: nowrap;
 }
 
 #eject-btn:hover {
@@ -222,7 +221,7 @@
 }
 
 #eject-btn:active {
-    transform: translateY(calc(-50% + 1px));
+    transform: translateY(1px);
 }
 
 /* Console bottom (vents) */
