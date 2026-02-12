@@ -80,7 +80,10 @@ export class GameBase {
     render(ctx, dt, timestamp) {
         if (!this.running) return;
 
-        this.time += dt;
+        // Convert dt from milliseconds to seconds, cap to prevent physics explosions
+        const dtSec = Math.min(dt / 1000, 0.05);
+
+        this.time += dtSec;
         this.hauntStage = state.get('hauntStage');
         this.corruptionLevel = state.get('corruptionLevel');
 
@@ -121,9 +124,9 @@ export class GameBase {
             return;
         }
 
-        // Game update and render
-        this.onUpdate(dt, timestamp);
-        this.onRender(ctx, dt, timestamp);
+        // Game update and render (pass seconds, not ms)
+        this.onUpdate(dtSec, timestamp);
+        this.onRender(ctx, dtSec, timestamp);
 
         // HUD
         this.renderHUD(ctx);
@@ -200,7 +203,7 @@ export class GameBase {
 
     // Pause screen
     renderPause(ctx, dt, timestamp) {
-        // Draw the game underneath
+        // Draw the game underneath (0 dt = frozen frame)
         this.onRender(ctx, 0, timestamp);
 
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -283,11 +286,11 @@ export class GameBase {
         this.score += points;
     }
 
-    // Timer helpers
+    // Timer helpers (interval in ms, converted to seconds internally)
     addTimer(callback, interval, repeat = false) {
         const timer = {
             callback,
-            interval,
+            interval: interval / 1000,
             repeat,
             elapsed: 0,
             id: Date.now() + Math.random()

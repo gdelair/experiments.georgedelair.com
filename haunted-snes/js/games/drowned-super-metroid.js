@@ -212,10 +212,12 @@ export class DrownedSuperMetroid extends GameBase {
 
     onDeath() {
         this.player.iFrames = 90;
+        this.player.energy = this.player.maxEnergy;
         this.player.x = 80;
         this.player.y = 200;
         this.player.vx = 0;
         this.player.vy = 0;
+        this.drowningTimer = 0;
         this.waterLevel = Math.max(0, this.waterLevel - 80);
         this.shakeTimer = 15;
     }
