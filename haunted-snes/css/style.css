@@ -1,0 +1,297 @@
+/* style.css — Layout, variables, background, responsive */
+
+:root {
+    /* SNES palette */
+    --snes-purple: #5a4a8a;
+    --snes-purple-dark: #3d3260;
+    --snes-purple-light: #7b6aaa;
+    --snes-gray: #d0d0d0;
+    --snes-gray-light: #e8e8e8;
+    --snes-gray-dark: #a0a0a0;
+    --snes-gray-darker: #808080;
+
+    /* Super Famicom button colors */
+    --btn-a: #cc2222;    /* Red */
+    --btn-b: #cccc22;    /* Yellow */
+    --btn-x: #2222cc;    /* Blue */
+    --btn-y: #22aa22;    /* Green */
+
+    /* TV */
+    --tv-bezel: #4a3828;
+    --tv-bezel-light: #6a5848;
+    --tv-bezel-dark: #2a1808;
+    --tv-woodgrain: linear-gradient(90deg,
+        #5c4030 0%, #6a4a38 15%, #5c4030 30%,
+        #6a4a38 45%, #5c4030 60%, #6a4a38 75%,
+        #5c4030 90%, #6a4a38 100%);
+
+    /* Screen */
+    --screen-bg: #0a0a0a;
+    --screen-glow: rgba(100, 200, 100, 0.03);
+    --scanline-opacity: 0.12;
+
+    /* Room */
+    --room-bg: #1a1520;
+    --room-gradient: linear-gradient(180deg, #1a1520 0%, #0d0a10 100%);
+
+    /* Text */
+    --text-bright: #e0e0e0;
+    --text-dim: #808080;
+    --text-glow: #44ff44;
+
+    /* LED */
+    --led-off: #333;
+    --led-green: #22cc22;
+    --led-red: #cc2222;
+
+    /* Spacing */
+    --gap: 20px;
+
+    /* Haunting */
+    --corruption-hue: 0deg;
+    --corruption-intensity: 0;
+    --glitch-offset: 0px;
+}
+
+/* Reset */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    min-height: 100vh;
+    overflow-x: hidden;
+    font-family: 'Courier New', monospace;
+    background: var(--room-gradient);
+    color: var(--text-bright);
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+/* Room layout */
+#room {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--gap);
+    padding: 20px;
+    min-height: 100vh;
+    position: relative;
+}
+
+/* Channel display */
+#channel-display {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 100;
+    pointer-events: none;
+}
+
+#channel-display.visible {
+    opacity: 1;
+}
+
+#channel-number {
+    font-size: 24px;
+    font-weight: bold;
+    margin-right: 8px;
+    color: var(--text-glow);
+}
+
+#channel-name {
+    color: var(--text-dim);
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+/* Controls help */
+#controls-help {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 11px;
+    z-index: 100;
+    opacity: 0.4;
+    transition: opacity 0.3s;
+}
+
+#controls-help:hover {
+    opacity: 1;
+}
+
+.help-title {
+    color: var(--text-glow);
+    margin-bottom: 8px;
+    font-weight: bold;
+    font-size: 10px;
+    letter-spacing: 2px;
+}
+
+.help-grid {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 2px 16px;
+    color: var(--text-dim);
+}
+
+.help-grid span:nth-child(odd) {
+    color: var(--text-bright);
+}
+
+/* Jump scare overlay */
+#jumpscare-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    pointer-events: none;
+    display: none;
+    background: black;
+    justify-content: center;
+    align-items: center;
+}
+
+#jumpscare-overlay.active {
+    display: flex;
+    pointer-events: all;
+}
+
+/* Narrative overlay */
+#narrative-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 500;
+    pointer-events: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 1s;
+}
+
+#narrative-overlay.visible {
+    opacity: 1;
+}
+
+#narrative-text {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 18px;
+    text-align: center;
+    max-width: 600px;
+    line-height: 2;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+    letter-spacing: 3px;
+}
+
+/* Boot overlay */
+#boot-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 200;
+    display: none;
+    pointer-events: none;
+}
+
+#boot-overlay.active {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Game HUD */
+#game-hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 50;
+}
+
+/* Hidden utility */
+.hidden {
+    display: none !important;
+}
+
+/* Haunting body effects */
+body.shake {
+    animation: consoleShake 0.5s ease-in-out;
+}
+
+body.consumed {
+    background: #000;
+}
+
+@keyframes consoleShake {
+    0%, 100% { transform: translate(0, 0); }
+    10% { transform: translate(-5px, -3px); }
+    20% { transform: translate(5px, 3px); }
+    30% { transform: translate(-3px, 5px); }
+    40% { transform: translate(3px, -5px); }
+    50% { transform: translate(-5px, 3px); }
+    60% { transform: translate(5px, -3px); }
+    70% { transform: translate(-3px, -5px); }
+    80% { transform: translate(3px, 5px); }
+    90% { transform: translate(-5px, -3px); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    :root {
+        --gap: 12px;
+    }
+
+    #room {
+        padding: 10px;
+    }
+
+    #controls-help {
+        display: none;
+    }
+
+    #channel-display {
+        top: 10px;
+        right: 10px;
+        font-size: 12px;
+    }
+
+    #channel-number {
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    :root {
+        --gap: 8px;
+    }
+}
+
+/* Print hide */
+@media print {
+    body { display: none; }
+}

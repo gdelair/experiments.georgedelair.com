@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>SUPER NINTENDO</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/console.css">
+    <link rel="stylesheet" href="css/tv.css">
+    <link rel="stylesheet" href="css/games.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🎮</text></svg>">
+</head>
+<body>
+    <div id="room">
+        <!-- CRT Television -->
+        <div id="tv-unit">
+            <div id="tv-bezel">
+                <div id="tv-brand">TRINITRON</div>
+                <div id="screen-container">
+                    <div id="screen">
+                        <canvas id="game-canvas" width="512" height="448"></canvas>
+                        <div id="crt-overlay"></div>
+                        <div id="scanlines"></div>
+                        <div id="screen-glare"></div>
+                        <div id="static-overlay"></div>
+                        <div id="power-off-screen">
+                            <div class="no-signal">NO SIGNAL</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="tv-controls">
+                    <div class="tv-knob" id="volume-knob" title="Volume">
+                        <div class="knob-indicator"></div>
+                        <span class="knob-label">VOL</span>
+                    </div>
+                    <div class="tv-led" id="tv-led"></div>
+                    <div class="tv-knob" id="brightness-knob" title="Brightness">
+                        <div class="knob-indicator"></div>
+                        <span class="knob-label">BRT</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SNES Console -->
+        <div id="snes-console">
+            <div id="console-top">
+                <div id="cartridge-slot">
+                    <div id="cartridge" class="inserted">
+                        <div class="cart-label">
+                            <div class="cart-title">SUPER HAUNTED</div>
+                            <div class="cart-subtitle">COLLECTION</div>
+                            <div class="cart-rating">16-BIT</div>
+                        </div>
+                        <div class="cart-grip"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="console-body">
+                <div id="console-branding">
+                    <span class="brand-super">Super</span>
+                    <span class="brand-nintendo">Nintendo</span>
+                    <span class="brand-suffix">Entertainment System</span>
+                </div>
+                <div id="console-controls">
+                    <div id="power-btn" class="console-btn" title="Power">
+                        <div class="btn-label">POWER</div>
+                        <div class="btn-switch"></div>
+                    </div>
+                    <div id="power-led"></div>
+                    <div id="reset-btn" class="console-btn" title="Reset / Change Channel">
+                        <div class="btn-label">RESET</div>
+                        <div class="btn-switch"></div>
+                    </div>
+                </div>
+                <div id="eject-btn" title="Eject Cartridge">EJECT</div>
+            </div>
+            <div id="console-bottom">
+                <div class="vent-slots">
+                    <div class="vent"></div><div class="vent"></div><div class="vent"></div>
+                    <div class="vent"></div><div class="vent"></div><div class="vent"></div>
+                    <div class="vent"></div><div class="vent"></div><div class="vent"></div>
+                    <div class="vent"></div><div class="vent"></div><div class="vent"></div>
+                </div>
+            </div>
+            <!-- Overheat effect -->
+            <div id="overheat-glow"></div>
+        </div>
+
+        <!-- SNES Controller -->
+        <div id="controller">
+            <div id="controller-body">
+                <!-- D-Pad -->
+                <div id="dpad">
+                    <div class="dpad-btn dpad-up" data-button="up"></div>
+                    <div class="dpad-btn dpad-down" data-button="down"></div>
+                    <div class="dpad-btn dpad-left" data-button="left"></div>
+                    <div class="dpad-btn dpad-right" data-button="right"></div>
+                    <div class="dpad-center"></div>
+                </div>
+
+                <!-- Center buttons -->
+                <div id="center-buttons">
+                    <button class="ctrl-btn select-btn" data-button="select">SELECT</button>
+                    <button class="ctrl-btn start-btn" data-button="start">START</button>
+                </div>
+
+                <!-- Face buttons (Super Famicom colors) -->
+                <div id="face-buttons">
+                    <button class="face-btn btn-x" data-button="x">X</button>
+                    <button class="face-btn btn-y" data-button="y">Y</button>
+                    <button class="face-btn btn-a" data-button="a">A</button>
+                    <button class="face-btn btn-b" data-button="b">B</button>
+                </div>
+
+                <!-- Shoulder buttons -->
+                <div id="shoulder-buttons">
+                    <button class="shoulder-btn btn-l" data-button="l">L</button>
+                    <button class="shoulder-btn btn-r" data-button="r">R</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Channel indicator -->
+        <div id="channel-display">
+            <span id="channel-number">--</span>
+            <span id="channel-name"></span>
+        </div>
+
+        <!-- Game HUD overlay -->
+        <div id="game-hud"></div>
+
+        <!-- Jump scare overlay -->
+        <div id="jumpscare-overlay"></div>
+
+        <!-- Narrative overlay -->
+        <div id="narrative-overlay">
+            <div id="narrative-text"></div>
+        </div>
+
+        <!-- Debug panel -->
+        <div id="debug-panel" class="hidden">
+            <div class="debug-title">DEBUG MODE</div>
+            <div id="debug-content"></div>
+        </div>
+
+        <!-- Boot screen overlay -->
+        <div id="boot-overlay">
+            <div id="boot-content"></div>
+        </div>
+
+        <!-- Keyboard help -->
+        <div id="controls-help">
+            <div class="help-title">CONTROLS</div>
+            <div class="help-grid">
+                <span>D-Pad</span><span>Arrow Keys</span>
+                <span>B / A</span><span>Z / X</span>
+                <span>Y / X</span><span>A / S</span>
+                <span>L / R</span><span>Q / W</span>
+                <span>Start</span><span>Enter</span>
+                <span>Select</span><span>R-Shift</span>
+                <span>Reset</span><span>Click RESET</span>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,557 @@
+/* console.css — SNES console & controller styling */
+
+/* === SNES CONSOLE === */
+#snes-console {
+    width: 580px;
+    position: relative;
+    margin-top: -10px;
+    z-index: 10;
+}
+
+#console-top {
+    background: linear-gradient(180deg, var(--snes-gray) 0%, var(--snes-gray-light) 100%);
+    border-radius: 12px 12px 0 0;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: center;
+    box-shadow:
+        inset 0 2px 0 rgba(255,255,255,0.3),
+        0 -2px 4px rgba(0,0,0,0.2);
+}
+
+/* Cartridge slot */
+#cartridge-slot {
+    width: 240px;
+    height: 50px;
+    background: #2a2a2a;
+    border-radius: 4px;
+    border: 2px solid #1a1a1a;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+}
+
+#cartridge {
+    width: 220px;
+    background: linear-gradient(180deg, #555 0%, #666 100%);
+    border-radius: 4px 4px 0 0;
+    position: relative;
+    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+}
+
+#cartridge.inserted {
+    transform: translateY(10px);
+}
+
+#cartridge.ejected {
+    transform: translateY(-60px);
+}
+
+.cart-label {
+    background: linear-gradient(135deg, var(--snes-purple) 0%, var(--snes-purple-dark) 100%);
+    margin: 4px;
+    padding: 4px 8px;
+    border-radius: 2px;
+    text-align: center;
+}
+
+.cart-title {
+    color: #ffd700;
+    font-size: 9px;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+.cart-subtitle {
+    color: rgba(255,255,255,0.7);
+    font-size: 7px;
+    letter-spacing: 1px;
+}
+
+.cart-rating {
+    color: rgba(255,255,255,0.5);
+    font-size: 6px;
+    margin-top: 2px;
+}
+
+.cart-grip {
+    width: 100%;
+    height: 6px;
+    background: repeating-linear-gradient(
+        90deg,
+        #444 0px, #444 3px,
+        #555 3px, #555 6px
+    );
+}
+
+/* Console body */
+#console-body {
+    background: linear-gradient(180deg, var(--snes-gray-light) 0%, var(--snes-gray) 100%);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    position: relative;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.2),
+        inset 0 -1px 0 rgba(0,0,0,0.1);
+}
+
+#console-branding {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+    flex: 1;
+}
+
+.brand-super {
+    font-size: 11px;
+    color: var(--snes-gray-darker);
+    font-style: italic;
+    letter-spacing: 3px;
+}
+
+.brand-nintendo {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+}
+
+.brand-suffix {
+    font-size: 7px;
+    color: var(--snes-gray-darker);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+/* Console buttons */
+#console-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.console-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btn-label {
+    font-size: 7px;
+    color: var(--snes-gray-darker);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.btn-switch {
+    width: 28px;
+    height: 14px;
+    background: linear-gradient(180deg, #888 0%, #666 100%);
+    border-radius: 3px;
+    border: 1px solid #555;
+    transition: all 0.2s;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.2),
+        0 2px 3px rgba(0,0,0,0.3);
+}
+
+.console-btn:hover .btn-switch {
+    background: linear-gradient(180deg, #999 0%, #777 100%);
+}
+
+.console-btn:active .btn-switch,
+.console-btn.active .btn-switch {
+    transform: translateY(1px);
+    box-shadow:
+        inset 0 1px 2px rgba(0,0,0,0.3),
+        0 1px 1px rgba(0,0,0,0.2);
+}
+
+/* Power LED */
+#power-led {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--led-off);
+    transition: all 0.3s;
+}
+
+#power-led.on {
+    background: var(--led-green);
+    box-shadow: 0 0 8px var(--led-green), 0 0 16px rgba(34,204,34,0.3);
+}
+
+#power-led.red {
+    background: var(--led-red);
+    box-shadow: 0 0 8px var(--led-red), 0 0 16px rgba(204,34,34,0.3);
+    animation: ledFlicker 0.5s infinite;
+}
+
+@keyframes ledFlicker {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Eject button */
+#eject-btn {
+    position: absolute;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 7px;
+    color: var(--snes-gray-darker);
+    letter-spacing: 1px;
+    cursor: pointer;
+    padding: 4px 8px;
+    background: linear-gradient(180deg, #ccc 0%, #bbb 100%);
+    border-radius: 2px;
+    border: 1px solid #aaa;
+    transition: all 0.2s;
+}
+
+#eject-btn:hover {
+    background: linear-gradient(180deg, #ddd 0%, #ccc 100%);
+}
+
+#eject-btn:active {
+    transform: translateY(calc(-50% + 1px));
+}
+
+/* Console bottom (vents) */
+#console-bottom {
+    background: linear-gradient(180deg, var(--snes-gray) 0%, var(--snes-gray-dark) 100%);
+    border-radius: 0 0 8px 8px;
+    padding: 8px 40px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.vent-slots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.vent {
+    width: 30px;
+    height: 3px;
+    background: #999;
+    border-radius: 1px;
+    box-shadow: inset 0 1px 1px rgba(0,0,0,0.3);
+}
+
+/* Overheat glow */
+#overheat-glow {
+    position: absolute;
+    inset: -5px;
+    border-radius: 16px;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(ellipse at center bottom, rgba(255,100,0,0.3) 0%, transparent 70%);
+    transition: opacity 0.5s;
+}
+
+#snes-console.overheating #overheat-glow {
+    opacity: 1;
+    animation: overheatPulse 2s ease-in-out infinite;
+}
+
+@keyframes overheatPulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* === SNES CONTROLLER === */
+#controller {
+    margin-top: 10px;
+}
+
+#controller-body {
+    width: 520px;
+    height: 160px;
+    background: linear-gradient(180deg, var(--snes-gray-light) 0%, var(--snes-gray) 100%);
+    border-radius: 80px 80px 100px 100px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 50px;
+    box-shadow:
+        0 4px 8px rgba(0,0,0,0.3),
+        inset 0 2px 0 rgba(255,255,255,0.3),
+        inset 0 -2px 0 rgba(0,0,0,0.1);
+    touch-action: none;
+}
+
+/* D-Pad */
+#dpad {
+    width: 90px;
+    height: 90px;
+    position: relative;
+}
+
+.dpad-btn {
+    position: absolute;
+    background: #333;
+    cursor: pointer;
+    transition: background 0.1s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.dpad-btn:hover {
+    background: #444;
+}
+
+.dpad-btn.active {
+    background: #555;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.dpad-btn.ghost-press {
+    background: #664466;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 0 8px rgba(100,0,200,0.5);
+}
+
+.dpad-up {
+    left: 30px;
+    top: 0;
+    width: 30px;
+    height: 35px;
+    border-radius: 4px 4px 0 0;
+}
+
+.dpad-down {
+    left: 30px;
+    bottom: 0;
+    width: 30px;
+    height: 35px;
+    border-radius: 0 0 4px 4px;
+}
+
+.dpad-left {
+    left: 0;
+    top: 30px;
+    width: 35px;
+    height: 30px;
+    border-radius: 4px 0 0 4px;
+}
+
+.dpad-right {
+    right: 0;
+    top: 30px;
+    width: 35px;
+    height: 30px;
+    border-radius: 0 4px 4px 0;
+}
+
+.dpad-center {
+    position: absolute;
+    left: 30px;
+    top: 30px;
+    width: 30px;
+    height: 30px;
+    background: #333;
+}
+
+/* Center buttons (Select/Start) */
+#center-buttons {
+    display: flex;
+    gap: 20px;
+    transform: rotate(-15deg);
+}
+
+.ctrl-btn {
+    width: 44px;
+    height: 16px;
+    background: #666;
+    border: none;
+    border-radius: 8px;
+    color: var(--snes-gray-darker);
+    font-size: 7px;
+    font-family: inherit;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow:
+        inset 0 -1px 0 rgba(255,255,255,0.1),
+        0 2px 3px rgba(0,0,0,0.3);
+    transition: all 0.1s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.ctrl-btn:active,
+.ctrl-btn.active {
+    transform: translateY(1px);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.ctrl-btn.ghost-press {
+    box-shadow: 0 0 8px rgba(100,0,200,0.5);
+}
+
+/* Face buttons (diamond layout, Super Famicom colors) */
+#face-buttons {
+    width: 90px;
+    height: 90px;
+    position: relative;
+}
+
+.face-btn {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid rgba(0,0,0,0.2);
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+        0 3px 5px rgba(0,0,0,0.3),
+        inset 0 1px 0 rgba(255,255,255,0.3);
+    transition: all 0.1s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.face-btn:active,
+.face-btn.active {
+    transform: translateY(1px);
+    box-shadow:
+        0 1px 2px rgba(0,0,0,0.3),
+        inset 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.face-btn.ghost-press {
+    box-shadow: 0 0 12px rgba(100,0,200,0.6) !important;
+    animation: ghostPulse 0.3s ease-in-out;
+}
+
+/* Diamond positions */
+.btn-x {
+    left: 31px;
+    top: 0;
+    background: var(--btn-x);
+    color: rgba(255,255,255,0.9);
+}
+
+.btn-y {
+    left: 0;
+    top: 31px;
+    background: var(--btn-y);
+    color: rgba(255,255,255,0.9);
+}
+
+.btn-a {
+    right: 0;
+    top: 31px;
+    background: var(--btn-a);
+    color: rgba(255,255,255,0.9);
+}
+
+.btn-b {
+    left: 31px;
+    bottom: 0;
+    background: var(--btn-b);
+    color: rgba(0,0,0,0.7);
+}
+
+/* Shoulder buttons */
+#shoulder-buttons {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    padding: 0 30px;
+    pointer-events: none;
+}
+
+.shoulder-btn {
+    width: 80px;
+    height: 24px;
+    background: linear-gradient(180deg, var(--snes-gray) 0%, var(--snes-gray-dark) 100%);
+    border: 1px solid #999;
+    border-radius: 6px 6px 0 0;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: bold;
+    color: #666;
+    cursor: pointer;
+    pointer-events: all;
+    box-shadow:
+        0 -2px 4px rgba(0,0,0,0.2),
+        inset 0 1px 0 rgba(255,255,255,0.3);
+    transition: all 0.1s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.shoulder-btn:active,
+.shoulder-btn.active {
+    transform: translateY(2px);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.shoulder-btn.ghost-press {
+    box-shadow: 0 0 8px rgba(100,0,200,0.5);
+}
+
+@keyframes ghostPulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(100,0,200,0.3); }
+    50% { box-shadow: 0 0 16px rgba(100,0,200,0.8); }
+}
+
+/* === RESPONSIVE CONTROLLER === */
+@media (max-width: 768px) {
+    #snes-console {
+        width: 100%;
+        max-width: 460px;
+    }
+
+    #controller-body {
+        width: 100%;
+        max-width: 460px;
+        height: 130px;
+        padding: 0 30px;
+    }
+
+    #dpad {
+        width: 75px;
+        height: 75px;
+        transform: scale(0.85);
+    }
+
+    #face-buttons {
+        width: 75px;
+        height: 75px;
+        transform: scale(0.85);
+    }
+
+    .shoulder-btn {
+        width: 60px;
+    }
+}
+
+@media (max-width: 480px) {
+    #controller-body {
+        height: 110px;
+        padding: 0 20px;
+        border-radius: 60px 60px 80px 80px;
+    }
+
+    #dpad { transform: scale(0.7); }
+    #face-buttons { transform: scale(0.7); }
+    #center-buttons { gap: 12px; }
+    .ctrl-btn { width: 36px; height: 14px; font-size: 6px; }
+    .shoulder-btn { width: 50px; height: 20px; font-size: 8px; }
+}
