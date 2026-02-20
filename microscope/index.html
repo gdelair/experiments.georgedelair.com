@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Interactive Microscope</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #0a0a0e;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #e0e0e0;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        #controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(6, 6, 10, 0.88);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 14px;
+            padding: 20px;
+            min-width: 240px;
+            z-index: 10;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            max-height: calc(100vh - 80px);
+            overflow-y: auto;
+        }
+
+        #controls.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-10px);
+        }
+
+        #controls::-webkit-scrollbar { width: 4px; }
+        #controls::-webkit-scrollbar-track { background: transparent; }
+        #controls::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+        #controls h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #fff;
+        }
+
+        #controls .subtitle {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.35);
+            margin-bottom: 16px;
+            font-style: italic;
+        }
+
+        .control-group {
+            margin-bottom: 12px;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.45);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .control-group label span {
+            color: rgba(255, 255, 255, 0.65);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #7eb8da;
+            cursor: pointer;
+            border: 2px solid rgba(0,0,0,0.3);
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 0;
+            padding: 7px 6px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.04);
+            color: #ccc;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .btn.active { background: rgba(126, 184, 218, 0.2); border-color: rgba(126, 184, 218, 0.4); color: #7eb8da; }
+
+        .section-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: rgba(255,255,255,0.25);
+            margin: 14px 0 8px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
+
+        #toggle-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 11;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(6, 6, 10, 0.85);
+            backdrop-filter: blur(10px);
+            color: #aaa;
+            font-size: 18px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        #toggle-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+        #back-link {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 10;
+            font-size: 12px;
+            color: rgba(255,255,255,0.35);
+            text-decoration: none;
+            padding: 6px 12px;
+            background: rgba(6,6,10,0.7);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.06);
+            transition: all 0.15s;
+        }
+
+        #back-link:hover { color: #fff; background: rgba(255,255,255,0.1); }
+
+        #info-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10;
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            text-align: right;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            line-height: 1.6;
+            background: rgba(6,6,10,0.7);
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        #stain-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <button id="toggle-btn" onclick="toggleControls()">&#9776;</button>
+
+    <div id="controls">
+        <h2>Interactive Microscope</h2>
+        <div class="subtitle">Click &amp; drag specimens to interact</div>
+
+        <div class="section-label">Specimen</div>
+        <div class="btn-row" id="specimen-btns"></div>
+
+        <div class="section-label">Stain / Dye</div>
+        <div class="btn-row" id="stain-btns"></div>
+
+        <div class="section-label">Optics</div>
+        <div class="control-group">
+            <label>Magnification <span id="zoom-val">200x</span></label>
+            <input type="range" id="zoom" min="50" max="1000" value="200" step="10">
+        </div>
+        <div class="control-group">
+            <label>Focus <span id="focus-val">50</span></label>
+            <input type="range" id="focus" min="0" max="100" value="50">
+        </div>
+        <div class="control-group">
+            <label>Brightness <span id="brightness-val">70</span></label>
+            <input type="range" id="brightness" min="10" max="100" value="70">
+        </div>
+        <div class="control-group">
+            <label>Depth of Field <span id="dof-val">50</span></label>
+            <input type="range" id="dof" min="0" max="100" value="50">
+        </div>
+
+        <div class="section-label">Interaction</div>
+        <div class="btn-row">
+            <button class="btn active" id="mode-poke" onclick="setMode('poke')">Poke</button>
+            <button class="btn" id="mode-attract" onclick="setMode('attract')">Attract</button>
+            <button class="btn" id="mode-repel" onclick="setMode('repel')">Repel</button>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="mode-heat" onclick="setMode('heat')">Heat</button>
+            <button class="btn" id="mode-freeze" onclick="setMode('freeze')">Freeze</button>
+        </div>
+    </div>
+
+    <div id="info-panel">
+        <div id="info-specimen">Specimen: ---</div>
+        <div id="info-zoom">Magnification: 200x</div>
+        <div id="info-stain"><span id="stain-indicator"></span>Stain: None</div>
+        <div id="info-count">Entities: 0</div>
+    </div>
+
+    <a id="back-link" href="../index.html">&larr; Back</a>
+
+    <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    let W, H;
+    function resize() {
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    // --- State ---
+    let zoom = 200;
+    let focusVal = 50;
+    let brightnessVal = 70;
+    let dofVal = 50;
+    let interactionMode = 'poke';
+    let currentSpecimen = 'cells';
+    let currentStain = 'none';
+    let panX = 0, panY = 0;
+    let isPanning = false;
+    let lastPanX = 0, lastPanY = 0;
+    let mouseX = W / 2, mouseY = H / 2;
+    let mouseDown = false;
+    let mouseWorldX = 0, mouseWorldY = 0;
+    let entities = [];
+    let time = 0;
+    let heatMap = [];
+
+    // --- Specimens ---
+    const specimens = {
+        cells: { name: 'Living Cells', color: '#88cc88', desc: 'Eukaryotic cells' },
+        bacteria: { name: 'Bacteria', color: '#ccaa55', desc: 'Rod & cocci bacteria' },
+        tardigrade: { name: 'Tardigrades', color: '#aa99cc', desc: 'Water bears' },
+        diatoms: { name: 'Diatoms', color: '#66aacc', desc: 'Silica microalgae' },
+        crystals: { name: 'Crystals', color: '#cc7788', desc: 'Mineral crystals' },
+        blood: { name: 'Blood Cells', color: '#cc5555', desc: 'Red & white blood cells' }
+    };
+
+    const stains = {
+        none: { name: 'None', color: 'transparent', tint: [0, 0, 0, 0] },
+        methylene: { name: 'Methylene Blue', color: '#3366cc', tint: [30, 50, 180, 0.12] },
+        iodine: { name: 'Iodine', color: '#aa7722', tint: [160, 110, 30, 0.1] },
+        hematoxylin: { name: 'H&E', color: '#8844aa', tint: [120, 40, 160, 0.1] },
+        fluorescent: { name: 'Fluorescent', color: '#44ff88', tint: [0, 255, 100, 0.08] }
+    };
+
+    // Build specimen buttons
+    const specBtns = document.getElementById('specimen-btns');
+    Object.keys(specimens).forEach(key => {
+        const btn = document.createElement('button');
+        btn.className = 'btn' + (key === currentSpecimen ? ' active' : '');
+        btn.textContent = specimens[key].name;
+        btn.id = 'spec-' + key;
+        btn.onclick = () => setSpecimen(key);
+        specBtns.appendChild(btn);
+    });
+
+    const stainBtns = document.getElementById('stain-btns');
+    Object.keys(stains).forEach(key => {
+        const btn = document.createElement('button');
+        btn.className = 'btn' + (key === currentStain ? ' active' : '');
+        btn.textContent = stains[key].name;
+        btn.id = 'stain-' + key;
+        btn.onclick = () => setStain(key);
+        stainBtns.appendChild(btn);
+    });
+
+    // --- Entity classes ---
+
+    class Cell {
+        constructor(x, y) {
+            this.x = x; this.y = y;
+            this.vx = (Math.random() - 0.5) * 0.3;
+            this.vy = (Math.random() - 0.5) * 0.3;
+            this.radius = 18 + Math.random() * 14;
+            this.nucleusRadius = this.radius * (0.3 + Math.random() * 0.15);
+            this.nucleusOffX = (Math.random() - 0.5) * this.radius * 0.3;
+            this.nucleusOffY = (Math.random() - 0.5) * this.radius * 0.3;
+            this.wobble = Math.random() * Math.PI * 2;
+            this.wobbleSpeed = 0.005 + Math.random() * 0.01;
+            this.organelles = [];
+            this.membrane = 0.6 + Math.random() * 0.3;
+            this.health = 1;
+            this.temp = 0;
+            for (let i = 0; i < 3 + Math.floor(Math.random() * 5); i++) {
+                const a = Math.random() * Math.PI * 2;
+                const d = Math.random() * this.radius * 0.6;
+                this.organelles.push({
+                    x: Math.cos(a) * d, y: Math.sin(a) * d,
+                    r: 2 + Math.random() * 3,
+                    phase: Math.random() * Math.PI * 2,
+                    type: Math.random() > 0.5 ? 'mito' : 'vesicle'
+                });
+            }
+            this.dividing = false;
+            this.divideProgress = 0;
+        }
+
+        update(dt) {
+            this.wobble += this.wobbleSpeed * dt;
+            const speed = 1 + this.temp * 2;
+            this.x += this.vx * speed * dt;
+            this.y += this.vy * speed * dt;
+            this.vx += (Math.random() - 0.5) * 0.02 * dt;
+            this.vy += (Math.random() - 0.5) * 0.02 * dt;
+            this.vx *= 0.995;
+            this.vy *= 0.995;
+            this.temp *= 0.995;
+            if (this.temp < -0.8) { this.vx *= 0.9; this.vy *= 0.9; }
+            if (this.dividing) {
+                this.divideProgress += 0.003 * dt;
+                if (this.divideProgress >= 1) {
+                    this.dividing = false;
+                    this.divideProgress = 0;
+                    return this.split();
+                }
+            }
+            // Random chance to start dividing
+            if (!this.dividing && Math.random() < 0.00003 * dt && entities.length < 120) {
+                this.dividing = true;
+            }
+            return null;
+        }
+
+        split() {
+            const angle = Math.random() * Math.PI * 2;
+            const d = this.radius * 0.8;
+            const child = new Cell(this.x + Math.cos(angle) * d, this.y + Math.sin(angle) * d);
+            child.radius = this.radius * 0.85;
+            child.nucleusRadius = child.radius * 0.35;
+            this.radius *= 0.85;
+            this.nucleusRadius = this.radius * 0.35;
+            return child;
+        }
+
+        draw(ctx, stainTint, focusBlur) {
+            const t = this.wobble;
+            ctx.save();
+            ctx.translate(this.x, this.y);
+
+            const blur = focusBlur * (0.5 + Math.random() * 0.1);
+            ctx.filter = blur > 0.5 ? `blur(${blur}px)` : 'none';
+
+            // Dividing pinch
+            if (this.dividing) {
+                const p = this.divideProgress;
+                ctx.save();
+                ctx.scale(1 + p * 0.3, 1 - p * 0.2);
+            }
+
+            // Membrane
+            const memAlpha = 0.15 + this.membrane * 0.15;
+            const hue = this.temp > 0.1 ? `hsl(${30 - this.temp * 30}, 70%, 60%)` :
+                        this.temp < -0.3 ? `hsl(${200 - this.temp * 20}, 60%, 65%)` :
+                        `hsla(120, 35%, 65%, ${memAlpha})`;
+            ctx.beginPath();
+            // Wobbly membrane
+            for (let i = 0; i <= 64; i++) {
+                const a = (i / 64) * Math.PI * 2;
+                const wobbleR = this.radius + Math.sin(a * 5 + t) * 1.5 + Math.sin(a * 3 - t * 1.3) * 1;
+                const px = Math.cos(a) * wobbleR;
+                const py = Math.sin(a) * wobbleR;
+                if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, this.radius);
+            const baseG = this.temp > 0.1 ? [200, 180, 140] : this.temp < -0.3 ? [140, 180, 220] : [140, 210, 150];
+            const sg = stainTint;
+            const r = Math.min(255, baseG[0] + sg[0]);
+            const g = Math.min(255, baseG[1] + sg[1]);
+            const b = Math.min(255, baseG[2] + sg[2]);
+            grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.25)`);
+            grad.addColorStop(0.7, `rgba(${r}, ${g}, ${b}, 0.12)`);
+            grad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.06)`);
+            ctx.fillStyle = grad;
+            ctx.fill();
+            ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${memAlpha + 0.1})`;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Nucleus
+            ctx.beginPath();
+            ctx.arc(this.nucleusOffX, this.nucleusOffY, this.nucleusRadius, 0, Math.PI * 2);
+            const nGrad = ctx.createRadialGradient(this.nucleusOffX, this.nucleusOffY, 0, this.nucleusOffX, this.nucleusOffY, this.nucleusRadius);
+            nGrad.addColorStop(0, `rgba(${80 + sg[0]}, ${100 + sg[1]}, ${80 + sg[2]}, 0.5)`);
+            nGrad.addColorStop(1, `rgba(${60 + sg[0]}, ${80 + sg[1]}, ${60 + sg[2]}, 0.2)`);
+            ctx.fillStyle = nGrad;
+            ctx.fill();
+            ctx.strokeStyle = `rgba(${80 + sg[0]}, ${110 + sg[1]}, ${80 + sg[2]}, 0.3)`;
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+
+            // Organelles
+            for (const org of this.organelles) {
+                const ox = org.x + Math.sin(t + org.phase) * 1.5;
+                const oy = org.y + Math.cos(t * 0.7 + org.phase) * 1.5;
+                ctx.beginPath();
+                ctx.arc(ox, oy, org.r, 0, Math.PI * 2);
+                if (org.type === 'mito') {
+                    ctx.fillStyle = `rgba(${160 + sg[0]}, ${120 + sg[1]}, ${80 + sg[2]}, 0.3)`;
+                } else {
+                    ctx.fillStyle = `rgba(${100 + sg[0]}, ${160 + sg[1]}, ${100 + sg[2]}, 0.25)`;
+                }
+                ctx.fill();
+            }
+
+            if (this.dividing) ctx.restore();
+            ctx.restore();
+        }
+    }
+
+    class Bacterium {
+        constructor(x, y) {
+            this.x = x; this.y = y;
+            this.vx = (Math.random() - 0.5) * 0.8;
+            this.vy = (Math.random() - 0.5) * 0.8;
+            this.angle = Math.random() * Math.PI * 2;
+            this.angVel = (Math.random() - 0.5) * 0.02;
+            this.type = Math.random() > 0.4 ? 'rod' : 'coccus';
+            this.length = this.type === 'rod' ? 14 + Math.random() * 16 : 0;
+            this.radius = this.type === 'rod' ? 4 + Math.random() * 2 : 5 + Math.random() * 4;
+            this.flagella = this.type === 'rod' ? Math.floor(Math.random() * 4) : 0;
+            this.flagPhase = Math.random() * Math.PI * 2;
+            this.wobble = Math.random() * Math.PI * 2;
+            this.temp = 0;
+            this.tumbleTimer = 50 + Math.random() * 200;
+        }
+
+        update(dt) {
+            this.wobble += 0.02 * dt;
+            this.flagPhase += 0.15 * dt;
+            const speed = 1 + this.temp * 3;
+            this.tumbleTimer -= dt;
+            if (this.tumbleTimer <= 0) {
+                this.angle += (Math.random() - 0.5) * Math.PI;
+                this.tumbleTimer = 30 + Math.random() * 150;
+            }
+            const thrust = 0.15 * speed;
+            this.vx += Math.cos(this.angle) * thrust * 0.02 * dt;
+            this.vy += Math.sin(this.angle) * thrust * 0.02 * dt;
+            this.x += this.vx * speed * dt;
+            this.y += this.vy * speed * dt;
+            this.angle += this.angVel * dt;
+            this.vx *= 0.98;
+            this.vy *= 0.98;
+            this.temp *= 0.995;
+            if (this.temp < -0.8) { this.vx *= 0.9; this.vy *= 0.9; }
+            return null;
+        }
+
+        draw(ctx, stainTint, focusBlur) {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            const blur = focusBlur * (0.5 + Math.random() * 0.1);
+            ctx.filter = blur > 0.5 ? `blur(${blur}px)` : 'none';
+
+            const sg = stainTint;
+            const r = 200 + sg[0], g = 180 + sg[1], b = 100 + sg[2];
+            const tempHue = this.temp > 0.1 ? [230, 160, 100] : this.temp < -0.3 ? [140, 180, 220] : [r, g, b];
+
+            if (this.type === 'rod') {
+                // Capsule shape
+                ctx.beginPath();
+                ctx.moveTo(-this.length / 2, -this.radius);
+                ctx.lineTo(this.length / 2, -this.radius);
+                ctx.arc(this.length / 2, 0, this.radius, -Math.PI / 2, Math.PI / 2);
+                ctx.lineTo(-this.length / 2, this.radius);
+                ctx.arc(-this.length / 2, 0, this.radius, Math.PI / 2, -Math.PI / 2);
+                ctx.closePath();
+                const grad = ctx.createLinearGradient(0, -this.radius, 0, this.radius);
+                grad.addColorStop(0, `rgba(${tempHue[0]}, ${tempHue[1]}, ${tempHue[2]}, 0.35)`);
+                grad.addColorStop(0.5, `rgba(${tempHue[0]}, ${tempHue[1]}, ${tempHue[2]}, 0.2)`);
+                grad.addColorStop(1, `rgba(${tempHue[0]}, ${tempHue[1]}, ${tempHue[2]}, 0.35)`);
+                ctx.fillStyle = grad;
+                ctx.fill();
+                ctx.strokeStyle = `rgba(${tempHue[0]}, ${tempHue[1]}, ${tempHue[2]}, 0.5)`;
+                ctx.lineWidth = 0.8;
+                ctx.stroke();
+
+                // Flagella
+                for (let f = 0; f < this.flagella; f++) {
+                    ctx.beginPath();
+                    const startX = -this.length / 2 - this.radius;
+                    const startY = (f - (this.flagella - 1) / 2) * 3;
+                    ctx.moveTo(startX, startY);
+                    for (let s = 0; s < 20; s++) {
+                        const sx = startX - s * 2;
+                        const sy = startY + Math.sin(this.flagPhase + s * 0.6 + f) * 4;
+                        ctx.lineTo(sx, sy);
+                    }
+                    ctx.strokeStyle = `rgba(${tempHue[0]}, ${tempHue[1]}, ${tempHue[2]}, 0.15)`;
+                    ctx.lineWidth = 0.6;
+                    ctx.stroke();
+                }
+            } else {
+                // Coccus (sphere)
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                const grad = ctx.createRadialGradient(-this.radius * 0.3, -this.radius * 0.3, 0, 0, 0, this.radius);
+                grad.addColorStop(0, `rgba(${tempHue[0]}, ${tempHue[1]}, ${tempHue[2]}, 0.4)`);
+                grad.addColorStop(1, `rgba(${tempHue[0]}, ${tempHue[1]}, ${tempHue[2]}, 0.15)`);
+                ctx.fillStyle = grad;
+                ctx.fill();
+                ctx.strokeStyle = `rgba(${tempHue[0]}, ${tempHue[1]}, ${tempHue[2]}, 0.45)`;
+                ctx.lineWidth = 0.8;
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+    }
+
+    class Tardigrade {
+        constructor(x, y) {
+            this.x = x; this.y = y;
+            this.vx = (Math.random() - 0.5) * 0.15;
+            this.vy = (Math.random() - 0.5) * 0.15;
+            this.angle = Math.random() * Math.PI * 2;
+            this.size = 35 + Math.random() * 20;
+            this.legPhase = Math.random() * Math.PI * 2;
+            this.segments = 5;
+            this.temp = 0;
+            this.crawling = true;
+            this.tunState = 0; // 0 = normal, 1 = tun (curled)
+        }
+
+        update(dt) {
+            this.legPhase += 0.04 * dt;
+            const speed = Math.max(0.1, 1 + this.temp);
+            if (this.temp < -0.5) {
+                this.tunState = Math.min(1, this.tunState + 0.01 * dt);
+            } else {
+                this.tunState = Math.max(0, this.tunState - 0.005 * dt);
+            }
+            if (this.tunState < 0.5) {
+                this.vx += Math.cos(this.angle) * 0.005 * speed * dt;
+                this.vy += Math.sin(this.angle) * 0.005 * speed * dt;
+                this.angle += (Math.random() - 0.5) * 0.01 * dt;
+            }
+            this.x += this.vx * dt;
+            this.y += this.vy * dt;
+            this.vx *= 0.995;
+            this.vy *= 0.995;
+            this.temp *= 0.998;
+            return null;
+        }
+
+        draw(ctx, stainTint, focusBlur) {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            const blur = focusBlur * 0.5;
+            ctx.filter = blur > 0.5 ? `blur(${blur}px)` : 'none';
+
+            const sg = stainTint;
+            const s = this.size * (1 - this.tunState * 0.3);
+            const bodyColor = [160 + sg[0], 150 + sg[1], 180 + sg[2]];
+
+            // Body segments
+            for (let i = 0; i < this.segments; i++) {
+                const t = i / (this.segments - 1);
+                const sx = (t - 0.5) * s;
+                const segW = s * 0.22 * (1 - Math.abs(t - 0.4) * 0.8);
+                const segH = segW * (0.7 + this.tunState * 0.3);
+                ctx.beginPath();
+                ctx.ellipse(sx, 0, segW, segH, 0, 0, Math.PI * 2);
+                const alpha = 0.15 + (1 - Math.abs(t - 0.5)) * 0.1;
+                ctx.fillStyle = `rgba(${bodyColor[0]}, ${bodyColor[1]}, ${bodyColor[2]}, ${alpha})`;
+                ctx.fill();
+                ctx.strokeStyle = `rgba(${bodyColor[0]}, ${bodyColor[1]}, ${bodyColor[2]}, ${alpha + 0.1})`;
+                ctx.lineWidth = 0.6;
+                ctx.stroke();
+
+                // Legs (4 pairs)
+                if (i > 0 && i < this.segments - 1 && this.tunState < 0.6) {
+                    const legLen = segW * 1.2;
+                    const legWave = Math.sin(this.legPhase + i * 1.2) * 0.3;
+                    for (let side = -1; side <= 1; side += 2) {
+                        ctx.beginPath();
+                        ctx.moveTo(sx, side * segH * 0.8);
+                        const lx = sx + Math.cos(legWave) * legLen * 0.5;
+                        const ly = side * (segH * 0.8 + legLen);
+                        ctx.quadraticCurveTo(sx + legLen * 0.3, side * (segH + legLen * 0.5), lx, ly);
+                        ctx.strokeStyle = `rgba(${bodyColor[0]}, ${bodyColor[1]}, ${bodyColor[2]}, 0.2)`;
+                        ctx.lineWidth = 1.2;
+                        ctx.stroke();
+                        // Tiny claws
+                        ctx.beginPath();
+                        ctx.arc(lx, ly, 1, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(${bodyColor[0]}, ${bodyColor[1]}, ${bodyColor[2]}, 0.3)`;
+                        ctx.fill();
+                    }
+                }
+            }
+
+            // Head with two eyespots
+            const headX = -s * 0.5;
+            ctx.beginPath();
+            ctx.arc(headX - 2, -2, 1.5, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(60, 30, 30, 0.5)`;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(headX - 2, 2, 1.5, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(60, 30, 30, 0.5)`;
+            ctx.fill();
+
+            // Mouth stylet
+            ctx.beginPath();
+            ctx.moveTo(headX - 4, 0);
+            ctx.lineTo(headX - 8, 0);
+            ctx.strokeStyle = `rgba(${bodyColor[0]}, ${bodyColor[1]}, ${bodyColor[2]}, 0.3)`;
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+
+            ctx.restore();
+        }
+    }
+
+    class Diatom {
+        constructor(x, y) {
+            this.x = x; this.y = y;
+            this.vx = (Math.random() - 0.5) * 0.1;
+            this.vy = (Math.random() - 0.5) * 0.1;
+            this.angle = Math.random() * Math.PI * 2;
+            this.angVel = (Math.random() - 0.5) * 0.003;
+            this.type = Math.floor(Math.random() * 4); // 0=pennate, 1=centric, 2=triangle, 3=star
+            this.size = 12 + Math.random() * 18;
+            this.detail = 6 + Math.floor(Math.random() * 8);
+            this.temp = 0;
+            this.patternSeed = Math.random() * 1000;
+        }
+
+        update(dt) {
+            this.x += this.vx * dt;
+            this.y += this.vy * dt;
+            this.angle += this.angVel * dt;
+            this.vx *= 0.999;
+            this.vy *= 0.999;
+            this.temp *= 0.995;
+            return null;
+        }
+
+        draw(ctx, stainTint, focusBlur) {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            const blur = focusBlur * 0.5;
+            ctx.filter = blur > 0.5 ? `blur(${blur}px)` : 'none';
+
+            const sg = stainTint;
+            const c = [100 + sg[0], 170 + sg[1], 200 + sg[2]];
+
+            if (this.type === 0) {
+                // Pennate diatom (elongated)
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.size, this.size * 0.35, 0, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.12)`;
+                ctx.fill();
+                ctx.strokeStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.35)`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                // Raphe line
+                ctx.beginPath();
+                ctx.moveTo(-this.size * 0.8, 0);
+                ctx.lineTo(this.size * 0.8, 0);
+                ctx.strokeStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.2)`;
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+                // Striae
+                for (let i = -this.detail; i <= this.detail; i++) {
+                    const px = (i / this.detail) * this.size * 0.8;
+                    const h = this.size * 0.3 * Math.sqrt(1 - (px / this.size) ** 2);
+                    ctx.beginPath();
+                    ctx.moveTo(px, -h);
+                    ctx.lineTo(px, h);
+                    ctx.strokeStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.1)`;
+                    ctx.lineWidth = 0.4;
+                    ctx.stroke();
+                }
+            } else if (this.type === 1) {
+                // Centric diatom (circular)
+                ctx.beginPath();
+                ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.1)`;
+                ctx.fill();
+                ctx.strokeStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.3)`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                // Concentric rings
+                for (let r = 3; r < this.size; r += 3) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, r, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.08)`;
+                    ctx.lineWidth = 0.4;
+                    ctx.stroke();
+                }
+                // Radial lines
+                for (let a = 0; a < Math.PI * 2; a += Math.PI * 2 / this.detail) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(Math.cos(a) * this.size, Math.sin(a) * this.size);
+                    ctx.strokeStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.06)`;
+                    ctx.lineWidth = 0.3;
+                    ctx.stroke();
+                }
+            } else if (this.type === 2) {
+                // Triangular diatom
+                ctx.beginPath();
+                for (let i = 0; i < 3; i++) {
+                    const a = (i / 3) * Math.PI * 2 - Math.PI / 2;
+                    const px = Math.cos(a) * this.size;
+                    const py = Math.sin(a) * this.size;
+                    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fillStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.1)`;
+                ctx.fill();
+                ctx.strokeStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.3)`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                // Inner pattern
+                for (let r = 4; r < this.size * 0.8; r += 4) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, r, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.06)`;
+                    ctx.lineWidth = 0.3;
+                    ctx.stroke();
+                }
+            } else {
+                // Star diatom
+                const points = 5 + Math.floor(this.patternSeed % 4);
+                ctx.beginPath();
+                for (let i = 0; i <= points * 2; i++) {
+                    const a = (i / (points * 2)) * Math.PI * 2;
+                    const r = i % 2 === 0 ? this.size : this.size * 0.5;
+                    const px = Math.cos(a) * r;
+                    const py = Math.sin(a) * r;
+                    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fillStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.1)`;
+                ctx.fill();
+                ctx.strokeStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.3)`;
+                ctx.lineWidth = 0.8;
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+    }
+
+    class Crystal {
+        constructor(x, y) {
+            this.x = x; this.y = y;
+            this.vx = 0; this.vy = 0;
+            this.angle = Math.random() * Math.PI * 2;
+            this.sides = 4 + Math.floor(Math.random() * 4);
+            this.size = 15 + Math.random() * 25;
+            this.hue = Math.random() * 360;
+            this.saturation = 30 + Math.random() * 40;
+            this.growing = true;
+            this.growRate = 0.01 + Math.random() * 0.02;
+            this.maxSize = this.size + 10 + Math.random() * 20;
+            this.facets = [];
+            this.temp = 0;
+            for (let i = 0; i < this.sides; i++) {
+                this.facets.push({
+                    brightness: 0.3 + Math.random() * 0.4,
+                    innerRatio: 0.3 + Math.random() * 0.4
+                });
+            }
+        }
+
+        update(dt) {
+            this.x += this.vx * dt;
+            this.y += this.vy * dt;
+            this.vx *= 0.98;
+            this.vy *= 0.98;
+            this.temp *= 0.998;
+            if (this.growing && this.temp > 0.3) {
+                this.size = Math.min(this.maxSize, this.size + this.growRate * dt * this.temp * 5);
+            }
+            if (this.temp < -0.3 && this.size > 8) {
+                this.size -= 0.01 * dt;
+            }
+            return null;
+        }
+
+        draw(ctx, stainTint, focusBlur) {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            const blur = focusBlur * 0.5;
+            ctx.filter = blur > 0.5 ? `blur(${blur}px)` : 'none';
+
+            const sg = stainTint;
+
+            // Draw each facet
+            for (let i = 0; i < this.sides; i++) {
+                const a1 = (i / this.sides) * Math.PI * 2;
+                const a2 = ((i + 1) / this.sides) * Math.PI * 2;
+                const p1x = Math.cos(a1) * this.size;
+                const p1y = Math.sin(a1) * this.size;
+                const p2x = Math.cos(a2) * this.size;
+                const p2y = Math.sin(a2) * this.size;
+
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(p1x, p1y);
+                ctx.lineTo(p2x, p2y);
+                ctx.closePath();
+
+                const bright = this.facets[i].brightness;
+                const h = (this.hue + sg[0]) % 360;
+                const s = this.saturation + sg[1] * 0.3;
+                ctx.fillStyle = `hsla(${h}, ${s}%, ${40 + bright * 30}%, ${0.1 + bright * 0.15})`;
+                ctx.fill();
+                ctx.strokeStyle = `hsla(${h}, ${s}%, ${50 + bright * 30}%, ${0.15 + bright * 0.15})`;
+                ctx.lineWidth = 0.6;
+                ctx.stroke();
+
+                // Inner facet lines
+                const inner = this.facets[i].innerRatio;
+                const midX = (p1x + p2x) / 2 * inner;
+                const midY = (p1y + p2y) / 2 * inner;
+                ctx.beginPath();
+                ctx.moveTo(midX, midY);
+                ctx.lineTo(p1x, p1y);
+                ctx.moveTo(midX, midY);
+                ctx.lineTo(p2x, p2y);
+                ctx.strokeStyle = `hsla(${h}, ${s}%, 70%, 0.08)`;
+                ctx.lineWidth = 0.3;
+                ctx.stroke();
+            }
+
+            // Light refraction highlight
+            ctx.beginPath();
+            ctx.arc(-this.size * 0.2, -this.size * 0.2, this.size * 0.3, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, 0.06)`;
+            ctx.fill();
+
+            ctx.restore();
+        }
+    }
+
+    class BloodCell {
+        constructor(x, y) {
+            this.x = x; this.y = y;
+            this.vx = (Math.random() - 0.5) * 0.5;
+            this.vy = (Math.random() - 0.5) * 0.5;
+            this.type = Math.random() > 0.12 ? 'rbc' : 'wbc';
+            this.radius = this.type === 'rbc' ? 8 + Math.random() * 3 : 12 + Math.random() * 4;
+            this.wobble = Math.random() * Math.PI * 2;
+            this.tilt = Math.random() * 0.5;
+            this.temp = 0;
+            this.lobeCount = 3 + Math.floor(Math.random() * 3);
+        }
+
+        update(dt) {
+            this.wobble += 0.01 * dt;
+            const speed = 1 + this.temp;
+            this.x += this.vx * speed * dt;
+            this.y += this.vy * speed * dt;
+            this.vx += (Math.random() - 0.5) * 0.01 * dt;
+            this.vy += (Math.random() - 0.5) * 0.01 * dt;
+            this.vx *= 0.998;
+            this.vy *= 0.998;
+            this.temp *= 0.995;
+            return null;
+        }
+
+        draw(ctx, stainTint, focusBlur) {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            const blur = focusBlur * (0.5 + Math.random() * 0.1);
+            ctx.filter = blur > 0.5 ? `blur(${blur}px)` : 'none';
+
+            const sg = stainTint;
+
+            if (this.type === 'rbc') {
+                // Red blood cell - biconcave disc
+                const squeeze = 0.7 + Math.sin(this.wobble) * 0.1;
+                ctx.scale(1, squeeze + this.tilt);
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, this.radius);
+                const r = Math.min(255, 200 + sg[0]);
+                const g = Math.min(255, 60 + sg[1]);
+                const b = Math.min(255, 60 + sg[2]);
+                grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.1)`);
+                grad.addColorStop(0.4, `rgba(${r}, ${g}, ${b}, 0.25)`);
+                grad.addColorStop(0.7, `rgba(${r}, ${g}, ${b}, 0.2)`);
+                grad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.3)`);
+                ctx.fillStyle = grad;
+                ctx.fill();
+                ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.35)`;
+                ctx.lineWidth = 0.8;
+                ctx.stroke();
+                // Central pallor
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius * 0.35, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.05)`;
+                ctx.fill();
+            } else {
+                // White blood cell - lobed nucleus
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, this.radius);
+                grad.addColorStop(0, `rgba(${200 + sg[0]}, ${200 + sg[1]}, ${220 + sg[2]}, 0.2)`);
+                grad.addColorStop(1, `rgba(${180 + sg[0]}, ${180 + sg[1]}, ${200 + sg[2]}, 0.1)`);
+                ctx.fillStyle = grad;
+                ctx.fill();
+                ctx.strokeStyle = `rgba(${180 + sg[0]}, ${180 + sg[1]}, ${200 + sg[2]}, 0.3)`;
+                ctx.lineWidth = 0.8;
+                ctx.stroke();
+                // Lobed nucleus
+                for (let i = 0; i < this.lobeCount; i++) {
+                    const a = (i / this.lobeCount) * Math.PI * 2 + this.wobble * 0.3;
+                    const d = this.radius * 0.3;
+                    const lx = Math.cos(a) * d;
+                    const ly = Math.sin(a) * d;
+                    ctx.beginPath();
+                    ctx.arc(lx, ly, this.radius * 0.3, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(${100 + sg[0]}, ${80 + sg[1]}, ${140 + sg[2]}, 0.3)`;
+                    ctx.fill();
+                }
+            }
+            ctx.restore();
+        }
+    }
+
+    // --- Specimen generation ---
+    function generateSpecimen(type) {
+        entities = [];
+        const spread = 400;
+        const cx = 0, cy = 0;
+
+        switch (type) {
+            case 'cells':
+                for (let i = 0; i < 30; i++) {
+                    entities.push(new Cell(
+                        cx + (Math.random() - 0.5) * spread,
+                        cy + (Math.random() - 0.5) * spread
+                    ));
+                }
+                break;
+            case 'bacteria':
+                for (let i = 0; i < 80; i++) {
+                    entities.push(new Bacterium(
+                        cx + (Math.random() - 0.5) * spread,
+                        cy + (Math.random() - 0.5) * spread
+                    ));
+                }
+                break;
+            case 'tardigrade':
+                for (let i = 0; i < 8; i++) {
+                    entities.push(new Tardigrade(
+                        cx + (Math.random() - 0.5) * spread,
+                        cy + (Math.random() - 0.5) * spread
+                    ));
+                }
+                // Add some debris/algae
+                for (let i = 0; i < 20; i++) {
+                    entities.push(new Diatom(
+                        cx + (Math.random() - 0.5) * spread,
+                        cy + (Math.random() - 0.5) * spread
+                    ));
+                }
+                break;
+            case 'diatoms':
+                for (let i = 0; i < 50; i++) {
+                    entities.push(new Diatom(
+                        cx + (Math.random() - 0.5) * spread,
+                        cy + (Math.random() - 0.5) * spread
+                    ));
+                }
+                break;
+            case 'crystals':
+                for (let i = 0; i < 25; i++) {
+                    entities.push(new Crystal(
+                        cx + (Math.random() - 0.5) * spread,
+                        cy + (Math.random() - 0.5) * spread
+                    ));
+                }
+                break;
+            case 'blood':
+                for (let i = 0; i < 80; i++) {
+                    entities.push(new BloodCell(
+                        cx + (Math.random() - 0.5) * spread,
+                        cy + (Math.random() - 0.5) * spread
+                    ));
+                }
+                break;
+        }
+        updateInfoPanel();
+    }
+
+    // --- Controls ---
+    function setSpecimen(key) {
+        currentSpecimen = key;
+        document.querySelectorAll('#specimen-btns .btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('spec-' + key).classList.add('active');
+        panX = 0; panY = 0;
+        generateSpecimen(key);
+    }
+
+    function setStain(key) {
+        currentStain = key;
+        document.querySelectorAll('#stain-btns .btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('stain-' + key).classList.add('active');
+        updateInfoPanel();
+    }
+
+    function setMode(mode) {
+        interactionMode = mode;
+        ['poke', 'attract', 'repel', 'heat', 'freeze'].forEach(m => {
+            document.getElementById('mode-' + m).classList.toggle('active', m === mode);
+        });
+    }
+
+    document.getElementById('zoom').addEventListener('input', e => {
+        zoom = parseFloat(e.target.value);
+        document.getElementById('zoom-val').textContent = zoom + 'x';
+        updateInfoPanel();
+    });
+    document.getElementById('focus').addEventListener('input', e => {
+        focusVal = parseFloat(e.target.value);
+        document.getElementById('focus-val').textContent = focusVal;
+    });
+    document.getElementById('brightness').addEventListener('input', e => {
+        brightnessVal = parseFloat(e.target.value);
+        document.getElementById('brightness-val').textContent = brightnessVal;
+    });
+    document.getElementById('dof').addEventListener('input', e => {
+        dofVal = parseFloat(e.target.value);
+        document.getElementById('dof-val').textContent = dofVal;
+    });
+
+    function toggleControls() {
+        const c = document.getElementById('controls');
+        const t = document.getElementById('toggle-btn');
+        c.classList.toggle('hidden');
+        t.style.display = c.classList.contains('hidden') ? 'flex' : 'none';
+    }
+
+    function updateInfoPanel() {
+        document.getElementById('info-specimen').textContent = `Specimen: ${specimens[currentSpecimen].name}`;
+        document.getElementById('info-zoom').textContent = `Magnification: ${zoom}x`;
+        const stainDot = document.getElementById('stain-indicator');
+        stainDot.style.background = stains[currentStain].color;
+        stainDot.style.display = currentStain === 'none' ? 'none' : 'inline-block';
+        document.getElementById('info-stain').innerHTML = `${stainDot.outerHTML}Stain: ${stains[currentStain].name}`;
+        document.getElementById('info-count').textContent = `Entities: ${entities.length}`;
+    }
+
+    // --- Input handling ---
+    function screenToWorld(sx, sy) {
+        const scale = zoom / 200;
+        return {
+            x: (sx - W / 2) / scale + panX,
+            y: (sy - H / 2) / scale + panY
+        };
+    }
+
+    let pointerStartX, pointerStartY, pointerStartPanX, pointerStartPanY;
+    let isInteracting = false;
+    let pinchDist = 0;
+
+    function handlePointerDown(x, y, e) {
+        // Check if clicking on UI
+        const el = document.elementFromPoint(x, y);
+        if (el && (el.closest('#controls') || el.closest('#toggle-btn') || el.closest('#back-link') || el.closest('#info-panel'))) return;
+
+        mouseDown = true;
+        pointerStartX = x;
+        pointerStartY = y;
+        pointerStartPanX = panX;
+        pointerStartPanY = panY;
+
+        const world = screenToWorld(x, y);
+        mouseWorldX = world.x;
+        mouseWorldY = world.y;
+
+        // Check if directly on an entity for poke
+        if (interactionMode === 'poke') {
+            for (const ent of entities) {
+                const dx = ent.x - world.x;
+                const dy = ent.y - world.y;
+                const r = ent.radius || ent.size || 15;
+                if (dx * dx + dy * dy < r * r * 1.5) {
+                    isInteracting = true;
+                    return;
+                }
+            }
+        }
+        if (['attract', 'repel', 'heat', 'freeze'].includes(interactionMode)) {
+            isInteracting = true;
+            return;
+        }
+
+        isPanning = true;
+    }
+
+    function handlePointerMove(x, y) {
+        mouseX = x;
+        mouseY = y;
+        const world = screenToWorld(x, y);
+        mouseWorldX = world.x;
+        mouseWorldY = world.y;
+
+        if (isPanning && mouseDown) {
+            const scale = zoom / 200;
+            panX = pointerStartPanX - (x - pointerStartX) / scale;
+            panY = pointerStartPanY - (y - pointerStartY) / scale;
+        }
+    }
+
+    function handlePointerUp() {
+        mouseDown = false;
+        isPanning = false;
+        isInteracting = false;
+    }
+
+    canvas.addEventListener('mousedown', e => handlePointerDown(e.clientX, e.clientY, e));
+    canvas.addEventListener('mousemove', e => handlePointerMove(e.clientX, e.clientY));
+    canvas.addEventListener('mouseup', handlePointerUp);
+    canvas.addEventListener('mouseleave', handlePointerUp);
+
+    canvas.addEventListener('wheel', e => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -20 : 20;
+        zoom = Math.max(50, Math.min(1000, zoom + delta));
+        document.getElementById('zoom').value = zoom;
+        document.getElementById('zoom-val').textContent = zoom + 'x';
+        updateInfoPanel();
+    }, { passive: false });
+
+    canvas.addEventListener('touchstart', e => {
+        if (e.touches.length === 2) {
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            pinchDist = Math.sqrt(dx * dx + dy * dy);
+            return;
+        }
+        if (e.touches.length === 1) {
+            const t = e.touches[0];
+            handlePointerDown(t.clientX, t.clientY, e);
+        }
+    }, { passive: true });
+
+    canvas.addEventListener('touchmove', e => {
+        if (e.touches.length === 2) {
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            const newDist = Math.sqrt(dx * dx + dy * dy);
+            const delta = (newDist - pinchDist) * 2;
+            zoom = Math.max(50, Math.min(1000, zoom + delta));
+            document.getElementById('zoom').value = zoom;
+            document.getElementById('zoom-val').textContent = zoom + 'x';
+            updateInfoPanel();
+            pinchDist = newDist;
+            return;
+        }
+        if (e.touches.length === 1) {
+            handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+        }
+    }, { passive: true });
+
+    canvas.addEventListener('touchend', e => {
+        if (e.touches.length === 0) handlePointerUp();
+    });
+
+    // --- Rendering ---
+    function drawMicroscopeOverlay() {
+        const cx = W / 2, cy = H / 2;
+        const viewRadius = Math.min(W, H) * 0.46;
+
+        // Vignette / lens darkening
+        const vigGrad = ctx.createRadialGradient(cx, cy, viewRadius * 0.6, cx, cy, viewRadius * 1.1);
+        vigGrad.addColorStop(0, 'rgba(0,0,0,0)');
+        vigGrad.addColorStop(0.7, 'rgba(0,0,0,0.15)');
+        vigGrad.addColorStop(0.9, 'rgba(0,0,0,0.6)');
+        vigGrad.addColorStop(1, 'rgba(0,0,0,0.95)');
+        ctx.fillStyle = vigGrad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Circular lens border
+        ctx.beginPath();
+        ctx.arc(cx, cy, viewRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(100, 120, 140, 0.15)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Outer ring
+        ctx.beginPath();
+        ctx.arc(cx, cy, viewRadius + 4, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(60, 70, 80, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Lens flare
+        const flareX = cx + viewRadius * 0.25;
+        const flareY = cy - viewRadius * 0.3;
+        const flareGrad = ctx.createRadialGradient(flareX, flareY, 0, flareX, flareY, viewRadius * 0.4);
+        flareGrad.addColorStop(0, 'rgba(200, 220, 255, 0.04)');
+        flareGrad.addColorStop(1, 'rgba(200, 220, 255, 0)');
+        ctx.fillStyle = flareGrad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Crosshair (subtle)
+        ctx.strokeStyle = 'rgba(150, 170, 190, 0.06)';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(cx - 30, cy);
+        ctx.lineTo(cx + 30, cy);
+        ctx.moveTo(cx, cy - 30);
+        ctx.lineTo(cx, cy + 30);
+        ctx.stroke();
+
+        // Scale bar
+        const scaleLen = 50;
+        const scaleX = cx + viewRadius * 0.5;
+        const scaleY = cy + viewRadius * 0.85;
+        ctx.strokeStyle = 'rgba(200, 220, 240, 0.25)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(scaleX, scaleY);
+        ctx.lineTo(scaleX + scaleLen, scaleY);
+        ctx.moveTo(scaleX, scaleY - 3);
+        ctx.lineTo(scaleX, scaleY + 3);
+        ctx.moveTo(scaleX + scaleLen, scaleY - 3);
+        ctx.lineTo(scaleX + scaleLen, scaleY + 3);
+        ctx.stroke();
+        const microns = Math.round(5000 / zoom);
+        ctx.fillStyle = 'rgba(200, 220, 240, 0.25)';
+        ctx.font = '9px -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(microns + ' \u00B5m', scaleX + scaleLen / 2, scaleY + 14);
+    }
+
+    function drawBackground() {
+        const bright = brightnessVal / 100;
+        const stainTint = stains[currentStain].tint;
+
+        // Slide background
+        const baseBg = Math.floor(240 * bright);
+        const bgR = Math.min(255, baseBg + stainTint[0] * stainTint[3] * 3);
+        const bgG = Math.min(255, baseBg + stainTint[1] * stainTint[3] * 3);
+        const bgB = Math.min(255, baseBg + stainTint[2] * stainTint[3] * 3);
+        ctx.fillStyle = `rgb(${bgR}, ${bgG}, ${bgB})`;
+        ctx.fillRect(0, 0, W, H);
+
+        // Subtle noise/texture
+        const scale = zoom / 200;
+        for (let i = 0; i < 60; i++) {
+            const nx = Math.random() * W;
+            const ny = Math.random() * H;
+            const nr = 0.5 + Math.random() * 1.5;
+            ctx.beginPath();
+            ctx.arc(nx, ny, nr, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(0, 0, 0, ${0.01 + Math.random() * 0.02})`;
+            ctx.fill();
+        }
+
+        // Fluorescent mode has dark background
+        if (currentStain === 'fluorescent') {
+            ctx.fillStyle = `rgba(0, 5, 10, ${0.92 - bright * 0.3})`;
+            ctx.fillRect(0, 0, W, H);
+        }
+    }
+
+    function drawDebris(scale) {
+        // Small floating debris particles
+        for (let i = 0; i < 30; i++) {
+            const seed = i * 137.5;
+            const dx = (Math.sin(seed + time * 0.001) * 300 - panX) * scale + W / 2;
+            const dy = (Math.cos(seed * 1.3 + time * 0.0008) * 300 - panY) * scale + H / 2;
+            ctx.beginPath();
+            ctx.arc(dx, dy, (0.5 + Math.sin(seed) * 0.5) * scale, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(80, 80, 60, ${0.05 + Math.sin(seed * 2) * 0.03})`;
+            ctx.fill();
+        }
+    }
+
+    function applyInteraction(dt) {
+        if (!mouseDown || !isInteracting) return;
+
+        const interactionRadius = 60;
+
+        for (const ent of entities) {
+            const dx = ent.x - mouseWorldX;
+            const dy = ent.y - mouseWorldY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > interactionRadius) continue;
+            const force = 1 - dist / interactionRadius;
+
+            switch (interactionMode) {
+                case 'poke':
+                    if (dist > 0) {
+                        ent.vx += (dx / dist) * force * 2;
+                        ent.vy += (dy / dist) * force * 2;
+                    }
+                    break;
+                case 'attract':
+                    if (dist > 5) {
+                        ent.vx -= (dx / dist) * force * 0.5 * dt * 0.1;
+                        ent.vy -= (dy / dist) * force * 0.5 * dt * 0.1;
+                    }
+                    break;
+                case 'repel':
+                    if (dist > 0) {
+                        ent.vx += (dx / dist) * force * 0.8 * dt * 0.1;
+                        ent.vy += (dy / dist) * force * 0.8 * dt * 0.1;
+                    }
+                    break;
+                case 'heat':
+                    ent.temp = Math.min(1, ent.temp + force * 0.02 * dt * 0.1);
+                    break;
+                case 'freeze':
+                    ent.temp = Math.max(-1, ent.temp - force * 0.02 * dt * 0.1);
+                    break;
+            }
+        }
+    }
+
+    // Interaction cursor indicator
+    function drawCursor() {
+        if (!mouseDown || !isInteracting) return;
+
+        const scale = zoom / 200;
+        const sx = (mouseWorldX - panX) * scale + W / 2;
+        const sy = (mouseWorldY - panY) * scale + H / 2;
+        const r = 60 * scale;
+
+        ctx.beginPath();
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
+
+        switch (interactionMode) {
+            case 'poke':
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                break;
+            case 'attract':
+                ctx.strokeStyle = 'rgba(100, 200, 255, 0.15)';
+                break;
+            case 'repel':
+                ctx.strokeStyle = 'rgba(255, 100, 100, 0.15)';
+                break;
+            case 'heat':
+                ctx.strokeStyle = 'rgba(255, 150, 50, 0.2)';
+                ctx.fillStyle = 'rgba(255, 100, 20, 0.03)';
+                ctx.fill();
+                break;
+            case 'freeze':
+                ctx.strokeStyle = 'rgba(100, 180, 255, 0.2)';
+                ctx.fillStyle = 'rgba(80, 150, 255, 0.03)';
+                ctx.fill();
+                break;
+        }
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    function render() {
+        time++;
+        const dt = 1;
+
+        drawBackground();
+
+        const scale = zoom / 200;
+        const stainTint = [
+            stains[currentStain].tint[0],
+            stains[currentStain].tint[1],
+            stains[currentStain].tint[2]
+        ];
+
+        // Focus blur based on distance from 50
+        const focusDist = Math.abs(focusVal - 50) / 50;
+        const baseBlur = focusDist * 6;
+
+        // DOF affects how much individual entities vary in blur
+        const dofFactor = (100 - dofVal) / 100;
+
+        ctx.save();
+        ctx.translate(W / 2, H / 2);
+        ctx.scale(scale, scale);
+        ctx.translate(-panX, -panY);
+
+        // Draw debris in world space
+        ctx.save();
+        ctx.translate(panX, panY);
+        drawDebris(1);
+        ctx.restore();
+
+        // Apply interaction
+        applyInteraction(dt);
+
+        // Update and draw entities
+        const newEntities = [];
+        for (const ent of entities) {
+            const child = ent.update(dt);
+            if (child) newEntities.push(child);
+
+            // Individual DOF blur
+            const entDepth = Math.sin(ent.x * 0.01 + ent.y * 0.01 + time * 0.005);
+            const entBlur = baseBlur + entDepth * dofFactor * 2;
+
+            ent.draw(ctx, stainTint, Math.max(0, entBlur));
+        }
+        entities.push(...newEntities);
+
+        ctx.restore();
+
+        drawCursor();
+        drawMicroscopeOverlay();
+
+        // Fluorescent glow post-process
+        if (currentStain === 'fluorescent') {
+            ctx.globalCompositeOperation = 'screen';
+            ctx.fillStyle = 'rgba(0, 15, 5, 0.05)';
+            ctx.fillRect(0, 0, W, H);
+            ctx.globalCompositeOperation = 'source-over';
+        }
+
+        updateInfoPanel();
+        requestAnimationFrame(render);
+    }
+
+    // Init
+    generateSpecimen(currentSpecimen);
+    render();
+
+    // Keyboard shortcut
+    document.addEventListener('keydown', e => {
+        if (e.key === 'h' || e.key === 'H') toggleControls();
+    });
+    </script>
+</body>
+</html>
