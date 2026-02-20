@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Ant Wars</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #0a0a0e;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #e0e0e0;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        #controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(6, 6, 10, 0.88);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 14px;
+            padding: 20px;
+            min-width: 250px;
+            max-width: 270px;
+            z-index: 10;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+
+        #controls.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-10px);
+        }
+
+        #controls::-webkit-scrollbar { width: 4px; }
+        #controls::-webkit-scrollbar-track { background: transparent; }
+        #controls::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+        #controls h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #fff;
+        }
+
+        #controls .subtitle {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.35);
+            margin-bottom: 14px;
+            font-style: italic;
+        }
+
+        .section-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: rgba(255,255,255,0.25);
+            margin: 14px 0 8px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .control-group {
+            margin-bottom: 10px;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.45);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .control-group label span {
+            color: rgba(255, 255, 255, 0.65);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #d4a057;
+            cursor: pointer;
+            border: 2px solid rgba(0,0,0,0.3);
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 0;
+            padding: 7px 6px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.04);
+            color: #ccc;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .btn.active { background: rgba(212, 160, 87, 0.2); border-color: rgba(212, 160, 87, 0.4); color: #d4a057; }
+        .btn.danger { border-color: rgba(200,60,60,0.3); }
+        .btn.danger:hover { background: rgba(200,60,60,0.15); color: #ff6b6b; }
+        .btn.danger.active { background: rgba(200,60,60,0.2); border-color: rgba(200,60,60,0.5); color: #ff6b6b; }
+
+        #toggle-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 11;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(6, 6, 10, 0.85);
+            backdrop-filter: blur(10px);
+            color: #aaa;
+            font-size: 18px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        #toggle-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+        #scoreboard {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            background: rgba(6, 6, 10, 0.85);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 12px;
+            padding: 14px 18px;
+            min-width: 160px;
+        }
+
+        .score-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: rgba(255,255,255,0.3);
+            margin-bottom: 8px;
+        }
+
+        .colony-score {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+
+        .colony-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .colony-name {
+            flex: 1;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .colony-pop {
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 11px;
+            color: rgba(255,255,255,0.8);
+            min-width: 30px;
+            text-align: right;
+        }
+
+        .colony-bar-bg {
+            width: 50px;
+            height: 4px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .colony-bar {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        #back-link {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 10;
+            font-size: 12px;
+            color: rgba(255,255,255,0.35);
+            text-decoration: none;
+            padding: 6px 12px;
+            background: rgba(6,6,10,0.7);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.06);
+            transition: all 0.15s;
+        }
+
+        #back-link:hover { color: #fff; background: rgba(255,255,255,0.1); }
+
+        #event-log {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10;
+            font-size: 10px;
+            font-family: 'SF Mono', Consolas, monospace;
+            color: rgba(255,255,255,0.3);
+            text-align: right;
+            max-width: 250px;
+            pointer-events: none;
+        }
+
+        .log-entry {
+            margin-bottom: 3px;
+            opacity: 1;
+            transition: opacity 1s ease;
+        }
+
+        .log-entry.fading { opacity: 0; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <button id="toggle-btn" onclick="toggleControls()">&#9776;</button>
+
+    <div id="controls">
+        <h2>Ant Wars</h2>
+        <div class="subtitle">Competing colonies fight for survival</div>
+
+        <div class="section-label">Colonies</div>
+        <div class="control-group">
+            <label>Colony Count <span id="colonies-val">4</span></label>
+            <input type="range" id="colonies" min="2" max="6" value="4" step="1">
+        </div>
+        <div class="btn-row">
+            <button class="btn" onclick="resetSimulation()">New World</button>
+        </div>
+
+        <div class="section-label">Brush Tool</div>
+        <div class="btn-row">
+            <button class="btn active" id="tool-food" onclick="setTool('food')">Food</button>
+            <button class="btn" id="tool-wall" onclick="setTool('wall')">Wall</button>
+            <button class="btn" id="tool-water" onclick="setTool('water')">Water</button>
+            <button class="btn" id="tool-erase" onclick="setTool('erase')">Erase</button>
+        </div>
+        <div class="control-group">
+            <label>Brush Size <span id="brush-val">20</span></label>
+            <input type="range" id="brush-size" min="5" max="60" value="20" step="1">
+        </div>
+
+        <div class="section-label">Chaos Events</div>
+        <div class="btn-row">
+            <button class="btn danger" onclick="triggerEvent('rain')">Rainstorm</button>
+            <button class="btn danger" onclick="triggerEvent('famine')">Famine</button>
+        </div>
+        <div class="btn-row">
+            <button class="btn danger" onclick="triggerEvent('plague')">Plague</button>
+            <button class="btn danger" onclick="triggerEvent('meteor')">Meteor</button>
+        </div>
+        <div class="btn-row">
+            <button class="btn danger" onclick="triggerEvent('feast')">Food Boom</button>
+            <button class="btn danger" onclick="triggerEvent('war')">All-Out War</button>
+        </div>
+
+        <div class="section-label">Settings</div>
+        <div class="control-group">
+            <label>Simulation Speed <span id="speed-val">1x</span></label>
+            <input type="range" id="speed" min="0.25" max="4" value="1" step="0.25">
+        </div>
+        <div class="control-group">
+            <label>Aggression <span id="aggro-val">50</span></label>
+            <input type="range" id="aggro" min="0" max="100" value="50">
+        </div>
+        <div class="control-group">
+            <label>Food Spawn Rate <span id="food-rate-val">50</span></label>
+            <input type="range" id="food-rate" min="0" max="100" value="50">
+        </div>
+
+        <div class="section-label">Display</div>
+        <div class="btn-row">
+            <button class="btn active" id="show-pheromones" onclick="toggleDisplay('pheromones')">Trails</button>
+            <button class="btn active" id="show-ants" onclick="toggleDisplay('ants')">Ants</button>
+            <button class="btn" id="show-territory" onclick="toggleDisplay('territory')">Territory</button>
+        </div>
+    </div>
+
+    <div id="scoreboard">
+        <div class="score-title">Colony Standings</div>
+        <div id="scores"></div>
+    </div>
+
+    <div id="event-log"></div>
+
+    <a id="back-link" href="../index.html">&larr; Back</a>
+
+    <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    let W, H, GRID_W, GRID_H;
+    const CELL = 4;
+
+    function resize() {
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+        GRID_W = Math.ceil(W / CELL);
+        GRID_H = Math.ceil(H / CELL);
+    }
+    resize();
+
+    // --- State ---
+    let colonies = [];
+    let ants = [];
+    let foodGrid, wallGrid, waterGrid;
+    let pheromoneGrids = []; // one per colony: { food[], home[] }
+    let colonyCount = 4;
+    let simSpeed = 1;
+    let aggression = 50;
+    let foodSpawnRate = 50;
+    let currentTool = 'food';
+    let brushSize = 20;
+    let mouseDown = false;
+    let mouseX = 0, mouseY = 0;
+    let showPheromones = true;
+    let showAnts = true;
+    let showTerritory = false;
+    let frame = 0;
+    let eventEffects = [];
+    let logEntries = [];
+    let warMode = false;
+    let warTimer = 0;
+    let plagueTimer = 0;
+    let plagueColony = -1;
+
+    const COLONY_COLORS = [
+        { r: 220, g: 60, b: 60, name: 'Crimson', hex: '#dc3c3c' },
+        { r: 60, g: 130, b: 220, name: 'Azure', hex: '#3c82dc' },
+        { r: 60, g: 190, b: 80, name: 'Emerald', hex: '#3cbe50' },
+        { r: 220, g: 180, b: 40, name: 'Gold', hex: '#dcb428' },
+        { r: 180, g: 60, b: 200, name: 'Violet', hex: '#b43cc8' },
+        { r: 220, g: 120, b: 40, name: 'Amber', hex: '#dc7828' }
+    ];
+
+    // --- Grid helpers ---
+    function createGrid(w, h) {
+        return new Float32Array(w * h);
+    }
+
+    function gIdx(gx, gy) {
+        return gy * GRID_W + gx;
+    }
+
+    function inBounds(gx, gy) {
+        return gx >= 0 && gx < GRID_W && gy >= 0 && gy < GRID_H;
+    }
+
+    // --- Colony ---
+    class Colony {
+        constructor(id, x, y, color) {
+            this.id = id;
+            this.x = x;
+            this.y = y;
+            this.color = color;
+            this.food = 20;
+            this.population = 0;
+            this.maxPop = 200;
+            this.spawnTimer = 0;
+            this.alive = true;
+        }
+    }
+
+    // --- Ant ---
+    class Ant {
+        constructor(colonyId, x, y) {
+            this.colonyId = colonyId;
+            this.x = x;
+            this.y = y;
+            this.angle = Math.random() * Math.PI * 2;
+            this.hasFood = false;
+            this.health = 1;
+            this.speed = 1.2 + Math.random() * 0.4;
+            this.turnBias = (Math.random() - 0.5) * 0.1;
+            this.wanderAngle = 0;
+            this.lifetime = 0;
+            this.maxLife = 2000 + Math.random() * 2000;
+            this.fighting = false;
+            this.fightTimer = 0;
+            this.isSoldier = Math.random() < 0.15;
+        }
+    }
+
+    // --- Init ---
+    function initGrids() {
+        foodGrid = createGrid(GRID_W, GRID_H);
+        wallGrid = new Uint8Array(GRID_W * GRID_H);
+        waterGrid = new Uint8Array(GRID_W * GRID_H);
+        pheromoneGrids = [];
+        for (let i = 0; i < 6; i++) {
+            pheromoneGrids.push({
+                food: createGrid(GRID_W, GRID_H),
+                home: createGrid(GRID_W, GRID_H)
+            });
+        }
+    }
+
+    function spawnFood(count) {
+        for (let i = 0; i < count; i++) {
+            const cx = Math.floor(Math.random() * GRID_W);
+            const cy = Math.floor(Math.random() * GRID_H);
+            const r = 5 + Math.floor(Math.random() * 12);
+            for (let dy = -r; dy <= r; dy++) {
+                for (let dx = -r; dx <= r; dx++) {
+                    const gx = cx + dx, gy = cy + dy;
+                    if (inBounds(gx, gy) && dx * dx + dy * dy < r * r) {
+                        const idx = gIdx(gx, gy);
+                        if (!wallGrid[idx] && !waterGrid[idx]) {
+                            foodGrid[idx] = Math.min(1, foodGrid[idx] + 0.5 + Math.random() * 0.5);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    function resetSimulation() {
+        resize();
+        initGrids();
+        colonies = [];
+        ants = [];
+        warMode = false;
+        warTimer = 0;
+        plagueTimer = 0;
+
+        colonyCount = parseInt(document.getElementById('colonies').value);
+
+        // Place colonies in a rough circle
+        const centerX = GRID_W / 2;
+        const centerY = GRID_H / 2;
+        const radius = Math.min(GRID_W, GRID_H) * 0.32;
+
+        for (let i = 0; i < colonyCount; i++) {
+            const a = (i / colonyCount) * Math.PI * 2 - Math.PI / 2;
+            const cx = Math.floor(centerX + Math.cos(a) * radius);
+            const cy = Math.floor(centerY + Math.sin(a) * radius);
+            colonies.push(new Colony(i, cx, cy, COLONY_COLORS[i]));
+
+            // Clear area around colony
+            for (let dy = -8; dy <= 8; dy++) {
+                for (let dx = -8; dx <= 8; dx++) {
+                    const gx = cx + dx, gy = cy + dy;
+                    if (inBounds(gx, gy)) {
+                        wallGrid[gIdx(gx, gy)] = 0;
+                        waterGrid[gIdx(gx, gy)] = 0;
+                    }
+                }
+            }
+
+            // Spawn initial ants
+            for (let j = 0; j < 30; j++) {
+                const ax = cx * CELL + (Math.random() - 0.5) * 20;
+                const ay = cy * CELL + (Math.random() - 0.5) * 20;
+                ants.push(new Ant(i, ax, ay));
+            }
+        }
+
+        // Spawn initial food
+        spawnFood(15);
+
+        buildScoreboard();
+        addLog('New world generated');
+    }
+
+    // --- Scoreboard ---
+    function buildScoreboard() {
+        const container = document.getElementById('scores');
+        container.innerHTML = '';
+        for (const col of colonies) {
+            const div = document.createElement('div');
+            div.className = 'colony-score';
+            div.id = 'score-' + col.id;
+            div.innerHTML = `
+                <div class="colony-dot" style="background:${col.color.hex}"></div>
+                <span class="colony-name">${col.color.name}</span>
+                <span class="colony-pop" id="pop-${col.id}">0</span>
+                <div class="colony-bar-bg"><div class="colony-bar" id="bar-${col.id}" style="background:${col.color.hex};width:0%"></div></div>
+            `;
+            container.appendChild(div);
+        }
+    }
+
+    function updateScoreboard() {
+        let maxPop = 1;
+        for (const col of colonies) {
+            col.population = ants.filter(a => a.colonyId === col.id).length;
+            if (col.population > maxPop) maxPop = col.population;
+        }
+        for (const col of colonies) {
+            const popEl = document.getElementById('pop-' + col.id);
+            const barEl = document.getElementById('bar-' + col.id);
+            if (popEl) popEl.textContent = col.population;
+            if (barEl) barEl.style.width = (col.population / maxPop * 100) + '%';
+
+            if (col.population === 0 && col.alive && frame > 100) {
+                col.alive = false;
+                addLog(`${col.color.name} colony eliminated!`);
+            }
+        }
+
+        // Check for winner
+        const alive = colonies.filter(c => c.alive);
+        if (alive.length === 1 && colonies.length > 1 && frame > 100) {
+            addLog(`${alive[0].color.name} wins!`);
+        }
+    }
+
+    // --- Event Log ---
+    function addLog(msg) {
+        logEntries.push({ msg, time: Date.now(), el: null });
+        renderLog();
+    }
+
+    function renderLog() {
+        const container = document.getElementById('event-log');
+        // Keep last 6
+        while (logEntries.length > 6) logEntries.shift();
+        container.innerHTML = '';
+        for (const entry of logEntries) {
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            div.textContent = entry.msg;
+            const age = Date.now() - entry.time;
+            if (age > 4000) div.style.opacity = Math.max(0, 1 - (age - 4000) / 2000);
+            container.appendChild(div);
+            entry.el = div;
+        }
+        // Remove old
+        logEntries = logEntries.filter(e => Date.now() - e.time < 6000);
+    }
+
+    // --- Tools ---
+    function setTool(tool) {
+        currentTool = tool;
+        ['food', 'wall', 'water', 'erase'].forEach(t => {
+            document.getElementById('tool-' + t).classList.toggle('active', t === tool);
+        });
+    }
+
+    function toggleDisplay(key) {
+        const btn = document.getElementById('show-' + key);
+        if (key === 'pheromones') { showPheromones = !showPheromones; btn.classList.toggle('active', showPheromones); }
+        if (key === 'ants') { showAnts = !showAnts; btn.classList.toggle('active', showAnts); }
+        if (key === 'territory') { showTerritory = !showTerritory; btn.classList.toggle('active', showTerritory); }
+    }
+
+    function toggleControls() {
+        const c = document.getElementById('controls');
+        const t = document.getElementById('toggle-btn');
+        c.classList.toggle('hidden');
+        t.style.display = c.classList.contains('hidden') ? 'flex' : 'none';
+    }
+
+    // --- Controls ---
+    document.getElementById('colonies').addEventListener('input', e => {
+        document.getElementById('colonies-val').textContent = e.target.value;
+    });
+    document.getElementById('speed').addEventListener('input', e => {
+        simSpeed = parseFloat(e.target.value);
+        document.getElementById('speed-val').textContent = simSpeed + 'x';
+    });
+    document.getElementById('aggro').addEventListener('input', e => {
+        aggression = parseInt(e.target.value);
+        document.getElementById('aggro-val').textContent = aggression;
+    });
+    document.getElementById('food-rate').addEventListener('input', e => {
+        foodSpawnRate = parseInt(e.target.value);
+        document.getElementById('food-rate-val').textContent = foodSpawnRate;
+    });
+    document.getElementById('brush-size').addEventListener('input', e => {
+        brushSize = parseInt(e.target.value);
+        document.getElementById('brush-val').textContent = brushSize;
+    });
+
+    // --- Chaos Events ---
+    function triggerEvent(type) {
+        switch (type) {
+            case 'rain': {
+                addLog('Rainstorm! Pheromones washed away');
+                // Wash away pheromones and add water puddles
+                for (const pg of pheromoneGrids) {
+                    for (let i = 0; i < pg.food.length; i++) {
+                        pg.food[i] *= 0.1;
+                        pg.home[i] *= 0.1;
+                    }
+                }
+                for (let i = 0; i < 8; i++) {
+                    const cx = Math.floor(Math.random() * GRID_W);
+                    const cy = Math.floor(Math.random() * GRID_H);
+                    const r = 8 + Math.floor(Math.random() * 15);
+                    for (let dy = -r; dy <= r; dy++) {
+                        for (let dx = -r; dx <= r; dx++) {
+                            if (dx * dx + dy * dy < r * r * (0.6 + Math.random() * 0.4)) {
+                                const gx = cx + dx, gy = cy + dy;
+                                if (inBounds(gx, gy) && !wallGrid[gIdx(gx, gy)]) {
+                                    waterGrid[gIdx(gx, gy)] = 1;
+                                }
+                            }
+                        }
+                    }
+                }
+                // Drown some ants in water
+                for (const ant of ants) {
+                    const gx = Math.floor(ant.x / CELL);
+                    const gy = Math.floor(ant.y / CELL);
+                    if (inBounds(gx, gy) && waterGrid[gIdx(gx, gy)]) {
+                        ant.health -= 0.5;
+                    }
+                }
+                eventEffects.push({ type: 'rain', timer: 120 });
+                break;
+            }
+            case 'famine': {
+                addLog('Famine! All food sources depleted');
+                for (let i = 0; i < foodGrid.length; i++) {
+                    foodGrid[i] *= 0.05;
+                }
+                for (const col of colonies) col.food = Math.max(0, col.food * 0.2);
+                break;
+            }
+            case 'plague': {
+                plagueColony = Math.floor(Math.random() * colonyCount);
+                const name = colonies[plagueColony] ? colonies[plagueColony].color.name : '?';
+                addLog(`Plague strikes ${name} colony!`);
+                plagueTimer = 300;
+                break;
+            }
+            case 'meteor': {
+                const mx = Math.floor(Math.random() * GRID_W);
+                const my = Math.floor(Math.random() * GRID_H);
+                const r = 15 + Math.floor(Math.random() * 20);
+                addLog(`Meteor impact at (${mx}, ${my})!`);
+                // Destroy everything in radius
+                for (let dy = -r; dy <= r; dy++) {
+                    for (let dx = -r; dx <= r; dx++) {
+                        const d2 = dx * dx + dy * dy;
+                        if (d2 < r * r) {
+                            const gx = mx + dx, gy = my + dy;
+                            if (inBounds(gx, gy)) {
+                                const idx = gIdx(gx, gy);
+                                foodGrid[idx] = 0;
+                                if (d2 < (r * 0.6) * (r * 0.6)) {
+                                    wallGrid[idx] = 1;
+                                    waterGrid[idx] = 0;
+                                } else {
+                                    wallGrid[idx] = 0;
+                                }
+                            }
+                        }
+                    }
+                }
+                // Kill ants in blast zone
+                const mxPx = mx * CELL, myPx = my * CELL, rPx = r * CELL;
+                for (const ant of ants) {
+                    const d = Math.sqrt((ant.x - mxPx) ** 2 + (ant.y - myPx) ** 2);
+                    if (d < rPx) ant.health = 0;
+                }
+                eventEffects.push({ type: 'meteor', x: mx * CELL, y: my * CELL, r: r * CELL, timer: 60 });
+                break;
+            }
+            case 'feast': {
+                addLog('Food boom! Abundant food everywhere');
+                spawnFood(30);
+                for (const col of colonies) col.food += 30;
+                break;
+            }
+            case 'war': {
+                addLog('All-out war! Aggression maximized');
+                warMode = true;
+                warTimer = 600;
+                break;
+            }
+        }
+    }
+
+    // --- Input ---
+    function paintBrush(px, py) {
+        const gcx = Math.floor(px / CELL);
+        const gcy = Math.floor(py / CELL);
+        const r = Math.ceil(brushSize / CELL);
+        for (let dy = -r; dy <= r; dy++) {
+            for (let dx = -r; dx <= r; dx++) {
+                if (dx * dx + dy * dy > r * r) continue;
+                const gx = gcx + dx, gy = gcy + dy;
+                if (!inBounds(gx, gy)) continue;
+                const idx = gIdx(gx, gy);
+                switch (currentTool) {
+                    case 'food':
+                        if (!wallGrid[idx] && !waterGrid[idx])
+                            foodGrid[idx] = Math.min(1, foodGrid[idx] + 0.3);
+                        break;
+                    case 'wall':
+                        wallGrid[idx] = 1;
+                        waterGrid[idx] = 0;
+                        foodGrid[idx] = 0;
+                        break;
+                    case 'water':
+                        waterGrid[idx] = 1;
+                        wallGrid[idx] = 0;
+                        foodGrid[idx] = 0;
+                        break;
+                    case 'erase':
+                        wallGrid[idx] = 0;
+                        waterGrid[idx] = 0;
+                        foodGrid[idx] = 0;
+                        break;
+                }
+            }
+        }
+    }
+
+    function handleDown(x, y) {
+        const el = document.elementFromPoint(x, y);
+        if (el && (el.closest('#controls') || el.closest('#toggle-btn') || el.closest('#scoreboard') || el.closest('#back-link'))) return;
+        mouseDown = true;
+        mouseX = x;
+        mouseY = y;
+        paintBrush(x, y);
+    }
+
+    canvas.addEventListener('mousedown', e => handleDown(e.clientX, e.clientY));
+    canvas.addEventListener('mousemove', e => {
+        mouseX = e.clientX; mouseY = e.clientY;
+        if (mouseDown) paintBrush(e.clientX, e.clientY);
+    });
+    canvas.addEventListener('mouseup', () => mouseDown = false);
+    canvas.addEventListener('mouseleave', () => mouseDown = false);
+
+    canvas.addEventListener('touchstart', e => {
+        if (e.touches.length === 1) {
+            const t = e.touches[0];
+            handleDown(t.clientX, t.clientY);
+        }
+    }, { passive: true });
+    canvas.addEventListener('touchmove', e => {
+        if (e.touches.length === 1 && mouseDown) {
+            mouseX = e.touches[0].clientX;
+            mouseY = e.touches[0].clientY;
+            paintBrush(mouseX, mouseY);
+        }
+    }, { passive: true });
+    canvas.addEventListener('touchend', () => mouseDown = false);
+
+    window.addEventListener('resize', () => {
+        // Simple resize — just update canvas, grids stay the same
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+    });
+
+    // --- Simulation ---
+    function senseDirection(ant, pg, gridType, ahead, offset) {
+        const senseAngle = 0.45;
+        let bestVal = -1, bestAngle = ant.angle;
+
+        for (let i = -1; i <= 1; i++) {
+            const a = ant.angle + i * senseAngle;
+            const sx = Math.floor((ant.x + Math.cos(a) * ahead) / CELL);
+            const sy = Math.floor((ant.y + Math.sin(a) * ahead) / CELL);
+            if (!inBounds(sx, sy)) continue;
+            const idx = gIdx(sx, sy);
+            if (wallGrid[idx] || waterGrid[idx]) continue;
+            const val = gridType === 'food' ? pg.food[idx] : pg.home[idx];
+            if (val > bestVal) {
+                bestVal = val;
+                bestAngle = a;
+            }
+        }
+        return bestVal > 0.01 ? bestAngle : -999;
+    }
+
+    function updateAnt(ant) {
+        const col = colonies[ant.colonyId];
+        if (!col || !col.alive) { ant.health = 0; return; }
+
+        ant.lifetime++;
+        if (ant.lifetime > ant.maxLife) ant.health -= 0.01;
+
+        // Plague
+        if (plagueTimer > 0 && ant.colonyId === plagueColony) {
+            ant.health -= 0.003;
+        }
+
+        // Fighting cooldown
+        if (ant.fightTimer > 0) { ant.fightTimer--; return; }
+
+        const pg = pheromoneGrids[ant.colonyId];
+        const gx = Math.floor(ant.x / CELL);
+        const gy = Math.floor(ant.y / CELL);
+
+        if (!inBounds(gx, gy)) {
+            // Bounce off edges
+            ant.angle += Math.PI;
+            ant.x = Math.max(CELL, Math.min(W - CELL, ant.x));
+            ant.y = Math.max(CELL, Math.min(H - CELL, ant.y));
+            return;
+        }
+
+        const idx = gIdx(gx, gy);
+
+        // Drown in water
+        if (waterGrid[idx]) {
+            ant.health -= 0.02;
+            ant.angle += (Math.random() - 0.5) * 1;
+        }
+
+        // Wall collision
+        const aheadX = Math.floor((ant.x + Math.cos(ant.angle) * CELL * 2) / CELL);
+        const aheadY = Math.floor((ant.y + Math.sin(ant.angle) * CELL * 2) / CELL);
+        if (inBounds(aheadX, aheadY) && wallGrid[gIdx(aheadX, aheadY)]) {
+            ant.angle += Math.PI * 0.5 + (Math.random() - 0.5) * 0.5;
+        }
+
+        if (ant.hasFood) {
+            // Heading home - drop food pheromone
+            pg.food[idx] = Math.min(1, pg.food[idx] + 0.15);
+
+            // Sense home pheromone
+            const homeDir = senseDirection(ant, pg, 'home', CELL * 5, 0);
+            if (homeDir !== -999) {
+                ant.angle += (homeDir - ant.angle) * 0.15;
+            } else {
+                // Head toward colony
+                const dx = col.x * CELL - ant.x;
+                const dy = col.y * CELL - ant.y;
+                const toHome = Math.atan2(dy, dx);
+                ant.angle += (toHome - ant.angle) * 0.03;
+            }
+
+            // Check if at colony
+            const distHome = Math.sqrt((ant.x - col.x * CELL) ** 2 + (ant.y - col.y * CELL) ** 2);
+            if (distHome < 20) {
+                ant.hasFood = false;
+                col.food += 1;
+                ant.angle += Math.PI; // turn around
+            }
+        } else {
+            // Foraging - drop home pheromone
+            pg.home[idx] = Math.min(1, pg.home[idx] + 0.12);
+
+            // Sense food pheromone
+            const foodDir = senseDirection(ant, pg, 'food', CELL * 5, 0);
+            if (foodDir !== -999) {
+                ant.angle += (foodDir - ant.angle) * 0.15;
+            }
+
+            // Check for food on ground
+            if (foodGrid[idx] > 0.05) {
+                ant.hasFood = true;
+                foodGrid[idx] = Math.max(0, foodGrid[idx] - 0.15);
+                ant.angle += Math.PI;
+            }
+        }
+
+        // Random wander
+        ant.wanderAngle += (Math.random() - 0.5) * 0.6;
+        ant.wanderAngle *= 0.9;
+        ant.angle += ant.wanderAngle * 0.15 + ant.turnBias;
+
+        // Move
+        const spd = ant.speed * (ant.hasFood ? 0.85 : 1);
+        ant.x += Math.cos(ant.angle) * spd;
+        ant.y += Math.sin(ant.angle) * spd;
+
+        // Clamp
+        if (ant.x < 1) { ant.x = 1; ant.angle = Math.PI - ant.angle; }
+        if (ant.x > W - 1) { ant.x = W - 1; ant.angle = Math.PI - ant.angle; }
+        if (ant.y < 1) { ant.y = 1; ant.angle = -ant.angle; }
+        if (ant.y > H - 1) { ant.y = H - 1; ant.angle = -ant.angle; }
+    }
+
+    function handleCombat() {
+        const effectiveAggro = warMode ? 100 : aggression;
+        if (effectiveAggro < 5) return;
+
+        // Spatial bucketing for O(n) combat checks
+        const bucketSize = 16;
+        const bw = Math.ceil(W / bucketSize);
+        const bh = Math.ceil(H / bucketSize);
+        const buckets = new Array(bw * bh);
+
+        for (let i = 0; i < ants.length; i++) {
+            const a = ants[i];
+            if (a.health <= 0 || a.fightTimer > 0) continue;
+            const bx = Math.floor(a.x / bucketSize);
+            const by = Math.floor(a.y / bucketSize);
+            if (bx < 0 || bx >= bw || by < 0 || by >= bh) continue;
+            const bi = by * bw + bx;
+            if (!buckets[bi]) buckets[bi] = [];
+            buckets[bi].push(i);
+        }
+
+        for (let by = 0; by < bh; by++) {
+            for (let bx = 0; bx < bw; bx++) {
+                const bi = by * bw + bx;
+                if (!buckets[bi]) continue;
+                // Check neighbors
+                for (let dby = -1; dby <= 1; dby++) {
+                    for (let dbx = -1; dbx <= 1; dbx++) {
+                        const nbi = (by + dby) * bw + (bx + dbx);
+                        if (nbi < 0 || nbi >= buckets.length || !buckets[nbi]) continue;
+
+                        for (const ai of buckets[bi]) {
+                            for (const bi2 of buckets[nbi]) {
+                                if (ai >= bi2) continue;
+                                const a = ants[ai], b = ants[bi2];
+                                if (a.colonyId === b.colonyId) continue;
+                                if (a.health <= 0 || b.health <= 0) continue;
+
+                                const dx = a.x - b.x, dy = a.y - b.y;
+                                const d2 = dx * dx + dy * dy;
+                                if (d2 > 64) continue; // 8px
+
+                                // Fight!
+                                if (Math.random() * 100 < effectiveAggro) {
+                                    const aStr = a.isSoldier ? 0.15 : 0.08;
+                                    const bStr = b.isSoldier ? 0.15 : 0.08;
+                                    a.health -= bStr * (0.5 + Math.random());
+                                    b.health -= aStr * (0.5 + Math.random());
+                                    a.fightTimer = 5;
+                                    b.fightTimer = 5;
+                                    a.fighting = true;
+                                    b.fighting = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    function spawnAnts() {
+        for (const col of colonies) {
+            if (!col.alive) continue;
+            col.spawnTimer++;
+            const interval = Math.max(8, 40 - col.food * 0.3);
+            if (col.spawnTimer >= interval && col.food >= 1 && col.population < col.maxPop) {
+                col.spawnTimer = 0;
+                col.food -= 1;
+                const ax = col.x * CELL + (Math.random() - 0.5) * 16;
+                const ay = col.y * CELL + (Math.random() - 0.5) * 16;
+                ants.push(new Ant(col.id, ax, ay));
+            }
+        }
+    }
+
+    function decayPheromones() {
+        const decay = 0.997;
+        for (const pg of pheromoneGrids) {
+            for (let i = 0; i < pg.food.length; i++) {
+                pg.food[i] *= decay;
+                pg.home[i] *= decay;
+                if (pg.food[i] < 0.001) pg.food[i] = 0;
+                if (pg.home[i] < 0.001) pg.home[i] = 0;
+            }
+        }
+    }
+
+    function naturalFoodSpawn() {
+        if (frame % 60 === 0 && Math.random() * 100 < foodSpawnRate) {
+            spawnFood(1);
+        }
+    }
+
+    // --- Rendering ---
+    function render() {
+        // Background
+        ctx.fillStyle = '#1a1610';
+        ctx.fillRect(0, 0, W, H);
+
+        // Subtle ground texture
+        if (frame % 120 === 0 || !render._groundCache) {
+            render._groundCache = ctx.createImageData(GRID_W, GRID_H);
+            const d = render._groundCache.data;
+            for (let i = 0; i < GRID_W * GRID_H; i++) {
+                const noise = Math.random() * 8;
+                d[i * 4] = 26 + noise;
+                d[i * 4 + 1] = 22 + noise;
+                d[i * 4 + 2] = 16 + noise;
+                d[i * 4 + 3] = 255;
+            }
+        }
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+        const tmpC = document.createElement('canvas');
+        tmpC.width = GRID_W; tmpC.height = GRID_H;
+        tmpC.getContext('2d').putImageData(render._groundCache, 0, 0);
+        ctx.drawImage(tmpC, 0, 0, W, H);
+        ctx.restore();
+
+        // Draw walls, water, food using imagedata
+        const imgData = ctx.getImageData(0, 0, W, H);
+        const pixels = imgData.data;
+
+        for (let gy = 0; gy < GRID_H; gy++) {
+            for (let gx = 0; gx < GRID_W; gx++) {
+                const idx = gIdx(gx, gy);
+
+                // Territory overlay
+                if (showTerritory) {
+                    let bestCol = -1, bestVal = 0;
+                    for (let c = 0; c < colonyCount; c++) {
+                        const v = pheromoneGrids[c].home[idx] + pheromoneGrids[c].food[idx];
+                        if (v > bestVal) { bestVal = v; bestCol = c; }
+                    }
+                    if (bestCol >= 0 && bestVal > 0.02) {
+                        const col = COLONY_COLORS[bestCol];
+                        const alpha = Math.min(0.15, bestVal * 0.3);
+                        for (let py = gy * CELL; py < Math.min((gy + 1) * CELL, H); py++) {
+                            for (let px = gx * CELL; px < Math.min((gx + 1) * CELL, W); px++) {
+                                const pi = (py * W + px) * 4;
+                                pixels[pi] = Math.min(255, pixels[pi] + col.r * alpha);
+                                pixels[pi + 1] = Math.min(255, pixels[pi + 1] + col.g * alpha);
+                                pixels[pi + 2] = Math.min(255, pixels[pi + 2] + col.b * alpha);
+                            }
+                        }
+                    }
+                }
+
+                // Pheromones
+                if (showPheromones) {
+                    for (let c = 0; c < colonyCount; c++) {
+                        const fVal = pheromoneGrids[c].food[idx];
+                        const hVal = pheromoneGrids[c].home[idx];
+                        if (fVal < 0.01 && hVal < 0.01) continue;
+                        const col = COLONY_COLORS[c];
+                        const alpha = Math.min(0.5, (fVal + hVal) * 0.6);
+                        for (let py = gy * CELL; py < Math.min((gy + 1) * CELL, H); py++) {
+                            for (let px = gx * CELL; px < Math.min((gx + 1) * CELL, W); px++) {
+                                const pi = (py * W + px) * 4;
+                                pixels[pi] = Math.min(255, pixels[pi] + col.r * alpha * 0.4);
+                                pixels[pi + 1] = Math.min(255, pixels[pi + 1] + col.g * alpha * 0.4);
+                                pixels[pi + 2] = Math.min(255, pixels[pi + 2] + col.b * alpha * 0.4);
+                            }
+                        }
+                    }
+                }
+
+                // Food
+                if (foodGrid[idx] > 0.01) {
+                    const fAlpha = foodGrid[idx];
+                    for (let py = gy * CELL; py < Math.min((gy + 1) * CELL, H); py++) {
+                        for (let px = gx * CELL; px < Math.min((gx + 1) * CELL, W); px++) {
+                            const pi = (py * W + px) * 4;
+                            pixels[pi] = Math.min(255, pixels[pi] + 80 * fAlpha);
+                            pixels[pi + 1] = Math.min(255, pixels[pi + 1] + 200 * fAlpha);
+                            pixels[pi + 2] = Math.min(255, pixels[pi + 2] + 40 * fAlpha);
+                        }
+                    }
+                }
+
+                // Wall
+                if (wallGrid[idx]) {
+                    for (let py = gy * CELL; py < Math.min((gy + 1) * CELL, H); py++) {
+                        for (let px = gx * CELL; px < Math.min((gx + 1) * CELL, W); px++) {
+                            const pi = (py * W + px) * 4;
+                            pixels[pi] = 60;
+                            pixels[pi + 1] = 55;
+                            pixels[pi + 2] = 48;
+                        }
+                    }
+                }
+
+                // Water
+                if (waterGrid[idx]) {
+                    const shimmer = 0.9 + Math.sin(gx * 0.3 + gy * 0.2 + frame * 0.05) * 0.1;
+                    for (let py = gy * CELL; py < Math.min((gy + 1) * CELL, H); py++) {
+                        for (let px = gx * CELL; px < Math.min((gx + 1) * CELL, W); px++) {
+                            const pi = (py * W + px) * 4;
+                            pixels[pi] = Math.floor(25 * shimmer);
+                            pixels[pi + 1] = Math.floor(50 * shimmer);
+                            pixels[pi + 2] = Math.floor(80 * shimmer);
+                            pixels[pi + 3] = 255;
+                        }
+                    }
+                }
+            }
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+
+        // Colony nests
+        for (const col of colonies) {
+            if (!col.alive) continue;
+            const cx = col.x * CELL, cy = col.y * CELL;
+
+            // Glow
+            const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 30);
+            glow.addColorStop(0, `rgba(${col.color.r}, ${col.color.g}, ${col.color.b}, 0.3)`);
+            glow.addColorStop(1, `rgba(${col.color.r}, ${col.color.g}, ${col.color.b}, 0)`);
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 30, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Nest mound
+            ctx.beginPath();
+            ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${col.color.r}, ${col.color.g}, ${col.color.b}, 0.6)`;
+            ctx.fill();
+            ctx.strokeStyle = `rgba(${col.color.r}, ${col.color.g}, ${col.color.b}, 0.8)`;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Food count
+            ctx.fillStyle = `rgba(255,255,255,0.5)`;
+            ctx.font = '9px -apple-system, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(Math.floor(col.food), cx, cy + 22);
+        }
+
+        // Ants
+        if (showAnts) {
+            for (const ant of ants) {
+                if (ant.health <= 0) continue;
+                const col = COLONY_COLORS[ant.colonyId];
+                const size = ant.isSoldier ? 2.5 : 1.8;
+
+                ctx.save();
+                ctx.translate(ant.x, ant.y);
+                ctx.rotate(ant.angle);
+
+                // Body
+                if (ant.fighting && ant.fightTimer > 0) {
+                    ctx.fillStyle = `rgba(255, 255, 100, 0.9)`;
+                } else if (ant.hasFood) {
+                    ctx.fillStyle = `rgba(${Math.min(255, col.r + 60)}, ${Math.min(255, col.g + 60)}, ${Math.min(255, col.b + 20)}, 0.9)`;
+                } else {
+                    ctx.fillStyle = `rgba(${col.r}, ${col.g}, ${col.b}, 0.85)`;
+                }
+
+                // Abdomen
+                ctx.beginPath();
+                ctx.ellipse(-size * 0.6, 0, size * 0.8, size * 0.55, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Head
+                ctx.beginPath();
+                ctx.arc(size * 0.9, 0, size * 0.45, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Carrying food indicator
+                if (ant.hasFood) {
+                    ctx.beginPath();
+                    ctx.arc(size * 1.6, 0, 1.2, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(100, 200, 60, 0.8)';
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        // Event effects
+        for (let i = eventEffects.length - 1; i >= 0; i--) {
+            const ef = eventEffects[i];
+            ef.timer--;
+            if (ef.timer <= 0) { eventEffects.splice(i, 1); continue; }
+
+            if (ef.type === 'meteor') {
+                const alpha = ef.timer / 60;
+                ctx.beginPath();
+                ctx.arc(ef.x, ef.y, ef.r * (1 + (1 - alpha) * 0.5), 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 150, 30, ${alpha * 0.15})`;
+                ctx.fill();
+                ctx.strokeStyle = `rgba(255, 200, 60, ${alpha * 0.3})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            if (ef.type === 'rain') {
+                const alpha = ef.timer / 120;
+                for (let r = 0; r < 20; r++) {
+                    const rx = Math.random() * W;
+                    const ry = Math.random() * H;
+                    ctx.strokeStyle = `rgba(100, 150, 220, ${alpha * 0.15})`;
+                    ctx.lineWidth = 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(rx, ry);
+                    ctx.lineTo(rx + 1, ry + 8);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // Brush cursor
+        if (!mouseDown || true) {
+            ctx.beginPath();
+            ctx.arc(mouseX, mouseY, brushSize, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // War mode flash
+        if (warMode) {
+            ctx.fillStyle = `rgba(255, 0, 0, ${0.02 + Math.sin(frame * 0.1) * 0.01})`;
+            ctx.fillRect(0, 0, W, H);
+        }
+    }
+
+    // --- Main loop ---
+    function tick() {
+        frame++;
+
+        const steps = Math.round(simSpeed * 2);
+        for (let s = 0; s < steps; s++) {
+            // Update ants
+            for (const ant of ants) {
+                updateAnt(ant);
+            }
+
+            // Combat
+            if (frame % 2 === 0) handleCombat();
+
+            // Remove dead
+            ants = ants.filter(a => a.health > 0);
+
+            // Reset fight flags
+            for (const ant of ants) {
+                if (ant.fightTimer <= 0) ant.fighting = false;
+            }
+
+            // Spawn
+            spawnAnts();
+
+            // Decay
+            if (frame % 3 === 0) decayPheromones();
+
+            // Natural food
+            naturalFoodSpawn();
+
+            // War timer
+            if (warMode) {
+                warTimer--;
+                if (warTimer <= 0) { warMode = false; addLog('War mode ended'); }
+            }
+
+            // Plague timer
+            if (plagueTimer > 0) {
+                plagueTimer--;
+                if (plagueTimer <= 0) addLog('Plague has subsided');
+            }
+
+            // Water evaporation (very slow)
+            if (frame % 500 === 0) {
+                for (let i = 0; i < waterGrid.length; i++) {
+                    if (waterGrid[i] && Math.random() < 0.1) waterGrid[i] = 0;
+                }
+            }
+        }
+
+        render();
+
+        if (frame % 30 === 0) {
+            updateScoreboard();
+            renderLog();
+        }
+
+        requestAnimationFrame(tick);
+    }
+
+    // Keyboard shortcut
+    document.addEventListener('keydown', e => {
+        if (e.key === 'h' || e.key === 'H') toggleControls();
+        if (e.key === ' ') { e.preventDefault(); triggerEvent('feast'); }
+    });
+
+    // Start
+    resetSimulation();
+    tick();
+    </script>
+</body>
+</html>
