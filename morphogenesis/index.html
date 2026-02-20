@@ -709,7 +709,7 @@
             requestAnimationFrame(animate);
         }
 
-        // Mouse / touch handlers - use document-level events for reliability
+        // Mouse / touch handlers
         function getMouseUV(clientX, clientY) {
             const rect = canvas.getBoundingClientRect();
             return [
@@ -718,14 +718,8 @@
             ];
         }
 
-        function isOverControls(e) {
-            const controls = document.getElementById('controls');
-            if (controls.classList.contains('hidden')) return false;
-            return controls.contains(e.target) || e.target.id === 'toggle-ui' || e.target.id === 'back-button';
-        }
-
-        document.addEventListener('mousedown', (e) => {
-            if (isOverControls(e)) return;
+        // Mouse: down/move on canvas, up on document (to catch releases outside canvas)
+        canvas.addEventListener('mousedown', (e) => {
             mouseDown = true;
             const uv = getMouseUV(e.clientX, e.clientY);
             mouseX = uv[0];
@@ -741,8 +735,8 @@
 
         document.addEventListener('mouseup', () => { mouseDown = false; });
 
-        document.addEventListener('touchstart', (e) => {
-            if (isOverControls(e)) return;
+        // Touch: start/move on canvas only so UI elements get native touch behavior
+        canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             mouseDown = true;
             const t = e.touches[0];
@@ -751,8 +745,7 @@
             mouseY = uv[1];
         }, { passive: false });
 
-        document.addEventListener('touchmove', (e) => {
-            if (!mouseDown) return;
+        canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
             const t = e.touches[0];
             const uv = getMouseUV(t.clientX, t.clientY);
