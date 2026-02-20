@@ -292,29 +292,38 @@
         'use strict';
 
         const canvas = document.getElementById('canvas');
-        const gl = canvas.getContext('webgl', {
-            alpha: false,
-            depth: false,
-            stencil: false,
-            antialias: false,
-            preserveDrawingBuffer: false
+
+        // Try WebGL2 first, then WebGL1
+        let gl = canvas.getContext('webgl2', {
+            alpha: false, depth: false, stencil: false,
+            antialias: false, preserveDrawingBuffer: false
         });
+        let isWebGL2 = !!gl;
+
+        if (!gl) {
+            gl = canvas.getContext('webgl', {
+                alpha: false, depth: false, stencil: false,
+                antialias: false, preserveDrawingBuffer: false
+            });
+        }
 
         if (!gl) {
             document.body.innerHTML = '<p style="color:#fff;padding:40px;font-size:18px;">WebGL is required for this experiment.</p>';
             return;
         }
 
-        // Check float texture support
-        const extFloat = gl.getExtension('OES_texture_float');
-        const extHalfFloat = gl.getExtension('OES_texture_half_float');
-        const extLinear = gl.getExtension('OES_texture_float_linear') || gl.getExtension('OES_texture_half_float_linear');
-        const useFloat = !!extFloat;
-        const texType = useFloat ? gl.FLOAT : (extHalfFloat ? extHalfFloat.HALF_FLOAT_OES : gl.UNSIGNED_BYTE);
+        // Enable float rendering
+        if (isWebGL2) {
+            gl.getExtension('EXT_color_buffer_float');
+        } else {
+            gl.getExtension('OES_texture_float');
+            gl.getExtension('OES_texture_float_linear');
+            gl.getExtension('WEBGL_color_buffer_float');
+        }
 
         // Simulation resolution
         let simW, simH;
-        const SIM_SCALE = 0.5; // Half resolution for performance
+        const SIM_SCALE = 0.5;
 
         // State
         let params = { feed: 0.0545, kill: 0.062 };
@@ -325,7 +334,6 @@
         let symmetryMode = false;
         let currentPalette = 0;
 
-        // Presets
         const presets = {
             coral:   { feed: 0.0545, kill: 0.062 },
             mitosis: { feed: 0.0367, kill: 0.0649 },
@@ -335,33 +343,35 @@
             worms:   { feed: 0.078,  kill: 0.061 }
         };
 
-        // Color palettes (5 colors each, mapped from U-V chemical values)
         const palettes = [
-            // Deep ocean
             { name: 'Ocean',  colors: ['#0a0a1a', '#0d3b66', '#1a936f', '#88d498', '#f0f3bd'] },
-            // Ember
             { name: 'Ember',  colors: ['#0a0a0f', '#4a1942', '#c84b31', '#f4a261', '#fefae0'] },
-            // Bioluminescence
             { name: 'Bio',    colors: ['#020024', '#090979', '#00d4ff', '#72efdd', '#ffffff'] },
-            // Infrared
             { name: 'IR',     colors: ['#000000', '#1a0030', '#7b2d8e', '#f0386b', '#ffe66d'] },
-            // Bone
             { name: 'Bone',   colors: ['#1b1b2f', '#3d3d6b', '#a2a2c2', '#d4d2d5', '#fafafa'] },
-            // Moss
             { name: 'Moss',   colors: ['#0b0c10', '#1f2833', '#45a29e', '#66fcf1', '#c5c6c7'] },
         ];
 
-        // Shader sources
-        const quadVS = `
-            attribute vec2 a_position;
-            varying vec2 v_uv;
+        // GLSL version prefix
+        const V = isWebGL2 ? '#version 300 es\n' : '';
+        const IN_V = isWebGL2 ? 'in' : 'attribute';
+        const IN_F = isWebGL2 ? 'in' : 'varying';
+        const OUT_V = isWebGL2 ? 'out' : 'varying';
+        const FRAG_COLOR = isWebGL2 ? 'fragColor' : 'gl_FragColor';
+        const FRAG_DECL = isWebGL2 ? 'out vec4 fragColor;\n' : '';
+        const TEX = isWebGL2 ? 'texture' : 'texture2D';
+
+        const quadVS = `${V}
+            precision highp float;
+            ${IN_V} vec2 a_position;
+            ${OUT_V} vec2 v_uv;
             void main() {
                 v_uv = a_position * 0.5 + 0.5;
                 gl_Position = vec4(a_position, 0.0, 1.0);
             }
         `;
 
-        const simFS = `
+        const simFS = `${V}
             precision highp float;
             uniform sampler2D u_state;
             uniform vec2 u_resolution;
@@ -372,26 +382,27 @@
             uniform float u_mouseDown;
             uniform float u_brushSize;
             uniform float u_symmetry;
-            varying vec2 v_uv;
+            ${IN_F} vec2 v_uv;
+            ${FRAG_DECL}
 
             void main() {
                 vec2 px = 1.0 / u_resolution;
-                vec4 c = texture2D(u_state, v_uv);
+                vec4 c = ${TEX}(u_state, v_uv);
                 float u = c.r;
                 float v = c.g;
 
-                // Laplacian (9-point stencil for smoother diffusion)
+                // 9-point Laplacian stencil
                 float lu = -u;
                 float lv = -v;
 
-                vec4 n  = texture2D(u_state, v_uv + vec2(0.0,  px.y));
-                vec4 s  = texture2D(u_state, v_uv + vec2(0.0, -px.y));
-                vec4 e  = texture2D(u_state, v_uv + vec2( px.x, 0.0));
-                vec4 w  = texture2D(u_state, v_uv + vec2(-px.x, 0.0));
-                vec4 ne = texture2D(u_state, v_uv + vec2( px.x,  px.y));
-                vec4 nw = texture2D(u_state, v_uv + vec2(-px.x,  px.y));
-                vec4 se = texture2D(u_state, v_uv + vec2( px.x, -px.y));
-                vec4 sw = texture2D(u_state, v_uv + vec2(-px.x, -px.y));
+                vec4 n  = ${TEX}(u_state, v_uv + vec2(0.0,  px.y));
+                vec4 s  = ${TEX}(u_state, v_uv + vec2(0.0, -px.y));
+                vec4 e  = ${TEX}(u_state, v_uv + vec2( px.x, 0.0));
+                vec4 w  = ${TEX}(u_state, v_uv + vec2(-px.x, 0.0));
+                vec4 ne = ${TEX}(u_state, v_uv + vec2( px.x,  px.y));
+                vec4 nw = ${TEX}(u_state, v_uv + vec2(-px.x,  px.y));
+                vec4 se = ${TEX}(u_state, v_uv + vec2( px.x, -px.y));
+                vec4 sw = ${TEX}(u_state, v_uv + vec2(-px.x, -px.y));
 
                 lu += 0.2 * (n.r + s.r + e.r + w.r) + 0.05 * (ne.r + nw.r + se.r + sw.r);
                 lv += 0.2 * (n.g + s.g + e.g + w.g) + 0.05 * (ne.g + nw.g + se.g + sw.g);
@@ -406,40 +417,37 @@
                 u += du * u_dt;
                 v += dv * u_dt;
 
-                // Mouse interaction: seed chemical V
+                // Mouse interaction - seed chemical V
                 if (u_mouseDown > 0.5) {
-                    float brushPx = u_brushSize * px.x;
-                    float dist = length(v_uv - u_mouse);
-                    if (dist < brushPx) {
-                        float falloff = smoothstep(brushPx, brushPx * 0.3, dist);
-                        v = mix(v, 1.0, falloff * 0.8);
-                        u = mix(u, 0.0, falloff * 0.3);
+                    float aspect = u_resolution.x / u_resolution.y;
+                    float brushR = u_brushSize / u_resolution.x;
+
+                    vec2 diff = v_uv - u_mouse;
+                    diff.x *= aspect;
+                    float dist = length(diff);
+                    float brushWorld = brushR * aspect;
+
+                    if (dist < brushWorld) {
+                        float falloff = smoothstep(brushWorld, brushWorld * 0.2, dist);
+                        v = mix(v, 1.0, falloff * 0.9);
+                        u = mix(u, 0.0, falloff * 0.4);
                     }
 
-                    // Symmetry
                     if (u_symmetry > 0.5) {
-                        vec2 sym = vec2(1.0 - u_mouse.x, u_mouse.y);
-                        float dist2 = length(v_uv - sym);
-                        if (dist2 < brushPx) {
-                            float falloff2 = smoothstep(brushPx, brushPx * 0.3, dist2);
-                            v = mix(v, 1.0, falloff2 * 0.8);
-                            u = mix(u, 0.0, falloff2 * 0.3);
-                        }
+                        vec2 mirrors[3];
+                        mirrors[0] = vec2(1.0 - u_mouse.x, u_mouse.y);
+                        mirrors[1] = vec2(u_mouse.x, 1.0 - u_mouse.y);
+                        mirrors[2] = vec2(1.0 - u_mouse.x, 1.0 - u_mouse.y);
 
-                        vec2 sym3 = vec2(u_mouse.x, 1.0 - u_mouse.y);
-                        float dist3 = length(v_uv - sym3);
-                        if (dist3 < brushPx) {
-                            float falloff3 = smoothstep(brushPx, brushPx * 0.3, dist3);
-                            v = mix(v, 1.0, falloff3 * 0.8);
-                            u = mix(u, 0.0, falloff3 * 0.3);
-                        }
-
-                        vec2 sym4 = vec2(1.0 - u_mouse.x, 1.0 - u_mouse.y);
-                        float dist4 = length(v_uv - sym4);
-                        if (dist4 < brushPx) {
-                            float falloff4 = smoothstep(brushPx, brushPx * 0.3, dist4);
-                            v = mix(v, 1.0, falloff4 * 0.8);
-                            u = mix(u, 0.0, falloff4 * 0.3);
+                        for (int m = 0; m < 3; m++) {
+                            vec2 md = v_uv - mirrors[m];
+                            md.x *= aspect;
+                            float mdist = length(md);
+                            if (mdist < brushWorld) {
+                                float mf = smoothstep(brushWorld, brushWorld * 0.2, mdist);
+                                v = mix(v, 1.0, mf * 0.9);
+                                u = mix(u, 0.0, mf * 0.4);
+                            }
                         }
                     }
                 }
@@ -447,21 +455,22 @@
                 u = clamp(u, 0.0, 1.0);
                 v = clamp(v, 0.0, 1.0);
 
-                gl_FragColor = vec4(u, v, 0.0, 1.0);
+                ${FRAG_COLOR} = vec4(u, v, 0.0, 1.0);
             }
         `;
 
-        const displayFS = `
+        const displayFS = `${V}
             precision highp float;
             uniform sampler2D u_state;
             uniform vec3 u_colors[5];
-            varying vec2 v_uv;
+            ${IN_F} vec2 v_uv;
+            ${FRAG_DECL}
 
             vec3 palette(float t) {
                 t = clamp(t, 0.0, 1.0) * 4.0;
                 int i = int(floor(t));
                 float f = fract(t);
-                f = f * f * (3.0 - 2.0 * f); // smoothstep interpolation
+                f = f * f * (3.0 - 2.0 * f);
 
                 vec3 c0, c1;
                 if (i == 0) { c0 = u_colors[0]; c1 = u_colors[1]; }
@@ -473,11 +482,10 @@
             }
 
             void main() {
-                vec4 state = texture2D(u_state, v_uv);
+                vec4 state = ${TEX}(u_state, v_uv);
                 float u = state.r;
                 float v = state.g;
 
-                // Map reaction values to visual intensity
                 float val = 1.0 - u + v * 0.5;
                 val = clamp(val, 0.0, 1.0);
 
@@ -488,7 +496,7 @@
                 float vignette = 1.0 - dot(vc, vc) * 0.15;
                 color *= vignette;
 
-                gl_FragColor = vec4(color, 1.0);
+                ${FRAG_COLOR} = vec4(color, 1.0);
             }
         `;
 
@@ -498,16 +506,20 @@
             gl.shaderSource(shader, src);
             gl.compileShader(shader);
             if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-                console.error('Shader error:', gl.getShaderInfoLog(shader));
+                console.error('Shader compile error:', gl.getShaderInfoLog(shader));
+                console.error('Source:', src);
                 return null;
             }
             return shader;
         }
 
         function createProgram(vs, fs) {
+            const vShader = compileShader(vs, gl.VERTEX_SHADER);
+            const fShader = compileShader(fs, gl.FRAGMENT_SHADER);
+            if (!vShader || !fShader) return null;
             const prog = gl.createProgram();
-            gl.attachShader(prog, compileShader(vs, gl.VERTEX_SHADER));
-            gl.attachShader(prog, compileShader(fs, gl.FRAGMENT_SHADER));
+            gl.attachShader(prog, vShader);
+            gl.attachShader(prog, fShader);
             gl.linkProgram(prog);
             if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
                 console.error('Program link error:', gl.getProgramInfoLog(prog));
@@ -522,38 +534,48 @@
             return u;
         }
 
-        function createTexture(w, h, data) {
+        // Create a renderable float FBO, testing completeness
+        function createFBO(w, h, data) {
             const tex = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, tex);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, texType, data);
-            return tex;
-        }
 
-        function createFBO(w, h, data) {
-            const tex = createTexture(w, h, data);
+            if (isWebGL2) {
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, w, h, 0, gl.RGBA, gl.FLOAT, data);
+            } else {
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.FLOAT, data);
+            }
+
             const fbo = gl.createFramebuffer();
             gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
             gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+
+            const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+            if (status !== gl.FRAMEBUFFER_COMPLETE) {
+                console.error('FBO incomplete:', status);
+            }
+
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
             return { tex, fbo };
         }
 
         function hexToRGB(hex) {
-            const r = parseInt(hex.slice(1, 3), 16) / 255;
-            const g = parseInt(hex.slice(3, 5), 16) / 255;
-            const b = parseInt(hex.slice(5, 7), 16) / 255;
-            return [r, g, b];
+            return [
+                parseInt(hex.slice(1, 3), 16) / 255,
+                parseInt(hex.slice(3, 5), 16) / 255,
+                parseInt(hex.slice(5, 7), 16) / 255
+            ];
         }
 
-        // Create quad geometry
+        // Quad geometry
         const quadBuf = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
 
-        // Create programs
+        // Programs
         const simProg = createProgram(quadVS, simFS);
         const simUni = getUniforms(simProg, [
             'u_state', 'u_resolution', 'u_feed', 'u_kill', 'u_dt',
@@ -571,57 +593,42 @@
         let fbos = [null, null];
         let currentFBO = 0;
 
-        function initSimulation(seedPattern) {
-            simW = Math.floor(canvas.width * SIM_SCALE);
-            simH = Math.floor(canvas.height * SIM_SCALE);
-
-            const size = simW * simH * 4;
-            let data;
-            if (useFloat) {
-                data = new Float32Array(size);
-            } else {
-                data = new Uint8Array(size);
+        function buildInitData(w, h, seed) {
+            const data = new Float32Array(w * h * 4);
+            // Fill with U=1, V=0
+            for (let i = 0; i < w * h; i++) {
+                data[i * 4] = 1.0;     // U
+                data[i * 4 + 1] = 0.0; // V
+                data[i * 4 + 2] = 0.0;
+                data[i * 4 + 3] = 1.0;
             }
-
-            // Fill with U=1, V=0 (uniform state)
-            for (let i = 0; i < simW * simH; i++) {
-                if (useFloat) {
-                    data[i * 4] = 1.0;
-                    data[i * 4 + 1] = 0.0;
-                } else {
-                    data[i * 4] = 255;
-                    data[i * 4 + 1] = 0;
-                }
-                data[i * 4 + 2] = 0;
-                if (useFloat) data[i * 4 + 3] = 1.0;
-                else data[i * 4 + 3] = 255;
-            }
-
-            if (seedPattern !== 'empty') {
-                // Seed with random spots of V
+            if (seed) {
                 const numSeeds = 20 + Math.floor(Math.random() * 15);
                 for (let s = 0; s < numSeeds; s++) {
-                    const cx = Math.floor(Math.random() * simW);
-                    const cy = Math.floor(Math.random() * simH);
+                    const cx = Math.floor(Math.random() * w);
+                    const cy = Math.floor(Math.random() * h);
                     const r = 3 + Math.floor(Math.random() * 8);
                     for (let dy = -r; dy <= r; dy++) {
                         for (let dx = -r; dx <= r; dx++) {
                             if (dx * dx + dy * dy <= r * r) {
-                                const x = (cx + dx + simW) % simW;
-                                const y = (cy + dy + simH) % simH;
-                                const idx = (y * simW + x) * 4;
-                                if (useFloat) {
-                                    data[idx] = 0.5 + Math.random() * 0.1;
-                                    data[idx + 1] = 0.25 + Math.random() * 0.1;
-                                } else {
-                                    data[idx] = Math.floor((0.5 + Math.random() * 0.1) * 255);
-                                    data[idx + 1] = Math.floor((0.25 + Math.random() * 0.1) * 255);
-                                }
+                                const x = (cx + dx + w) % w;
+                                const y = (cy + dy + h) % h;
+                                const idx = (y * w + x) * 4;
+                                data[idx] = 0.5 + Math.random() * 0.1;
+                                data[idx + 1] = 0.25 + Math.random() * 0.1;
                             }
                         }
                     }
                 }
             }
+            return data;
+        }
+
+        function initSimulation(seed) {
+            simW = Math.max(1, Math.floor(canvas.width * SIM_SCALE));
+            simH = Math.max(1, Math.floor(canvas.height * SIM_SCALE));
+
+            const data = buildInitData(simW, simH, seed);
 
             // Clean up old FBOs
             fbos.forEach(f => {
@@ -640,8 +647,14 @@
             const dpr = Math.min(window.devicePixelRatio || 1, 2);
             canvas.width = Math.floor(window.innerWidth * dpr);
             canvas.height = Math.floor(window.innerHeight * dpr);
-            gl.viewport(0, 0, canvas.width, canvas.height);
-            initSimulation('seed');
+            initSimulation(true);
+        }
+
+        function bindQuad(prog) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+            const aPos = gl.getAttribLocation(prog, 'a_position');
+            gl.enableVertexAttribArray(aPos);
+            gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
         }
 
         function step() {
@@ -650,12 +663,8 @@
 
             gl.bindFramebuffer(gl.FRAMEBUFFER, dst.fbo);
             gl.viewport(0, 0, simW, simH);
-
             gl.useProgram(simProg);
-            gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
-            const aPos = gl.getAttribLocation(simProg, 'a_position');
-            gl.enableVertexAttribArray(aPos);
-            gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+            bindQuad(simProg);
 
             gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, src.tex);
@@ -670,19 +679,14 @@
             gl.uniform1f(simUni.u_symmetry, symmetryMode ? 1.0 : 0.0);
 
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
             currentFBO = 1 - currentFBO;
         }
 
         function display() {
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
             gl.viewport(0, 0, canvas.width, canvas.height);
-
             gl.useProgram(dispProg);
-            gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
-            const aPos = gl.getAttribLocation(dispProg, 'a_position');
-            gl.enableVertexAttribArray(aPos);
-            gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+            bindQuad(dispProg);
 
             gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, fbos[currentFBO].tex);
@@ -704,6 +708,60 @@
             display();
             requestAnimationFrame(animate);
         }
+
+        // Mouse / touch handlers - use document-level events for reliability
+        function getMouseUV(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            return [
+                (clientX - rect.left) / rect.width,
+                1.0 - (clientY - rect.top) / rect.height
+            ];
+        }
+
+        function isOverControls(e) {
+            const controls = document.getElementById('controls');
+            if (controls.classList.contains('hidden')) return false;
+            return controls.contains(e.target) || e.target.id === 'toggle-ui' || e.target.id === 'back-button';
+        }
+
+        document.addEventListener('mousedown', (e) => {
+            if (isOverControls(e)) return;
+            mouseDown = true;
+            const uv = getMouseUV(e.clientX, e.clientY);
+            mouseX = uv[0];
+            mouseY = uv[1];
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!mouseDown) return;
+            const uv = getMouseUV(e.clientX, e.clientY);
+            mouseX = uv[0];
+            mouseY = uv[1];
+        });
+
+        document.addEventListener('mouseup', () => { mouseDown = false; });
+
+        document.addEventListener('touchstart', (e) => {
+            if (isOverControls(e)) return;
+            e.preventDefault();
+            mouseDown = true;
+            const t = e.touches[0];
+            const uv = getMouseUV(t.clientX, t.clientY);
+            mouseX = uv[0];
+            mouseY = uv[1];
+        }, { passive: false });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!mouseDown) return;
+            e.preventDefault();
+            const t = e.touches[0];
+            const uv = getMouseUV(t.clientX, t.clientY);
+            mouseX = uv[0];
+            mouseY = uv[1];
+        }, { passive: false });
+
+        document.addEventListener('touchend', () => { mouseDown = false; });
+        document.addEventListener('touchcancel', () => { mouseDown = false; });
 
         // UI setup
         function setupUI() {
@@ -735,7 +793,6 @@
                 speedVal.textContent = stepsPerFrame;
             });
 
-            // Presets
             document.querySelectorAll('[data-preset]').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const p = presets[btn.dataset.preset];
@@ -745,7 +802,6 @@
                     killSlider.value = p.kill;
                     feedVal.textContent = p.feed.toFixed(4);
                     killVal.textContent = p.kill.toFixed(4);
-
                     document.querySelectorAll('[data-preset]').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                 });
@@ -755,13 +811,11 @@
                 document.querySelectorAll('[data-preset]').forEach(b => b.classList.remove('active'));
             }
 
-            // Palette swatches
             const paletteRow = document.getElementById('palette-row');
             palettes.forEach((pal, idx) => {
                 const swatch = document.createElement('div');
                 swatch.className = 'palette-swatch' + (idx === 0 ? ' active' : '');
-                // Create gradient from palette colors
-                swatch.style.background = `linear-gradient(135deg, ${pal.colors[0]}, ${pal.colors[1]}, ${pal.colors[2]}, ${pal.colors[3]}, ${pal.colors[4]})`;
+                swatch.style.background = 'linear-gradient(135deg, ' + pal.colors.join(', ') + ')';
                 swatch.title = pal.name;
                 swatch.addEventListener('click', () => {
                     currentPalette = idx;
@@ -771,13 +825,8 @@
                 paletteRow.appendChild(swatch);
             });
 
-            // Action buttons
-            document.getElementById('clear-btn').addEventListener('click', () => {
-                initSimulation('empty');
-            });
-            document.getElementById('seed-btn').addEventListener('click', () => {
-                initSimulation('seed');
-            });
+            document.getElementById('clear-btn').addEventListener('click', () => initSimulation(false));
+            document.getElementById('seed-btn').addEventListener('click', () => initSimulation(true));
             document.getElementById('symmetry-btn').addEventListener('click', () => {
                 symmetryMode = !symmetryMode;
                 const btn = document.getElementById('symmetry-btn');
@@ -785,13 +834,10 @@
                 btn.style.borderColor = symmetryMode ? 'rgba(255,255,255,0.3)' : '';
             });
 
-            // Toggle UI
             const controls = document.getElementById('controls');
-            const toggleBtn = document.getElementById('toggle-ui');
-            toggleBtn.addEventListener('click', () => {
+            document.getElementById('toggle-ui').addEventListener('click', () => {
                 controls.classList.toggle('hidden');
             });
-
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'h' || e.key === 'H') {
                     controls.classList.toggle('hidden');
@@ -799,62 +845,10 @@
             });
         }
 
-        // Mouse / touch handlers
-        function getMouseUV(e) {
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / rect.width;
-            const y = 1.0 - (e.clientY - rect.top) / rect.height;
-            return [x, y];
-        }
+        // Handle resize
+        window.addEventListener('resize', resize);
 
-        canvas.addEventListener('mousedown', (e) => {
-            mouseDown = true;
-            const uv = getMouseUV(e);
-            mouseX = uv[0];
-            mouseY = uv[1];
-        });
-
-        canvas.addEventListener('mousemove', (e) => {
-            const uv = getMouseUV(e);
-            mouseX = uv[0];
-            mouseY = uv[1];
-        });
-
-        canvas.addEventListener('mouseup', () => { mouseDown = false; });
-        canvas.addEventListener('mouseleave', () => { mouseDown = false; });
-
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            mouseDown = true;
-            const touch = e.touches[0];
-            const uv = getMouseUV(touch);
-            mouseX = uv[0];
-            mouseY = uv[1];
-        }, { passive: false });
-
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const uv = getMouseUV(touch);
-            mouseX = uv[0];
-            mouseY = uv[1];
-        }, { passive: false });
-
-        canvas.addEventListener('touchend', () => { mouseDown = false; });
-
-        // Prevent controls from triggering canvas
-        document.getElementById('controls').addEventListener('mousedown', (e) => e.stopPropagation());
-        document.getElementById('controls').addEventListener('touchstart', (e) => e.stopPropagation());
-
-        // Init
-        window.addEventListener('resize', () => {
-            const dpr = Math.min(window.devicePixelRatio || 1, 2);
-            canvas.width = Math.floor(window.innerWidth * dpr);
-            canvas.height = Math.floor(window.innerHeight * dpr);
-            gl.viewport(0, 0, canvas.width, canvas.height);
-            initSimulation('seed');
-        });
-
+        // Boot
         resize();
         setupUI();
         animate();
